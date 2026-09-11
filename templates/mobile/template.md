@@ -80,3 +80,18 @@
 - E2E: Detox, Appium, Maestro
 - Unit: Jest, flutter_test
 - Snapshot: Jest snapshot tests
+
+## Common Issues
+- Missing runtime permission handling
+- App Store / Play Store rejection (privacy, SDKs)
+- Lifecycle leaks on background/rotation
+- Fixed sizes ignoring density and safe areas
+- No offline / poor-network handling
+- Signing/provisioning config drift
+
+## Testing Patterns
+- RN: Jest + React Native Testing Library
+- Native: XCTest (iOS), JUnit/Espresso (Android)
+- Flutter: `flutter test` + `integration_test`
+- E2E: Detox, Maestro, Appium
+- Debug/release build smoke per platform

@@ -260,6 +260,92 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 CMD ["/main"]
 ```
 
+### Fix Java Dockerfile
+
+```dockerfile
+# Before
+FROM maven:3.9-eclipse-temurin-21
+WORKDIR /app
+COPY . .
+RUN mvn package
+CMD ["java", "-jar", "target/app.jar"]
+
+# After (multi-stage, non-root, container-aware heap)
+FROM maven:3.9-eclipse-temurin-21 AS builder
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -B dependency:go-offline
+COPY src ./src
+RUN mvn -B -DskipTests package
+
+FROM eclipse-temurin:21-jre-alpine
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+WORKDIR /app
+COPY --from=builder --chown=appuser:appgroup /app/target/app.jar ./app.jar
+USER appuser
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
+```
+
+### Fix Rust Dockerfile
+
+```dockerfile
+# Before
+FROM rust:1.78
+WORKDIR /app
+COPY . .
+RUN cargo build --release
+CMD ["./target/release/app"]
+
+# After (multi-stage with cached dependency layer and slim runtime)
+FROM rust:1.78-slim AS builder
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
+COPY src ./src
+RUN touch src/main.rs && cargo build --release
+
+FROM debian:bookworm-slim
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+WORKDIR /app
+COPY --from=builder --chown=appuser:appgroup /app/target/release/app ./app
+USER appuser
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+CMD ["./app"]
+```
+
+### Fix PHP Dockerfile
+
+```dockerfile
+# Before
+FROM php:8.3
+WORKDIR /app
+COPY . .
+RUN composer install
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
+
+# After (php-fpm, non-root, opcache + vendor layer)
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --prefer-dist
+
+FROM php:8.3-fpm-alpine
+RUN docker-php-ext-install opcache pdo_mysql
+WORKDIR /app
+COPY --from=vendor /app/vendor ./vendor
+COPY . .
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && chown -R appuser:appgroup /app
+USER appuser
+EXPOSE 9000
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD php -r "exit(0);" || exit 1
+```
+
 ### Fix Compose
 
 ```yaml

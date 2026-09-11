@@ -71,3 +71,18 @@
 - Build ordering and caching
 - Shared configuration consistency
 - Version management across packages
+
+## Common Issues
+- Client/server type or schema drift
+- CORS and cookie/auth misconfiguration
+- Authorization enforced in UI but not the API
+- Cache invalidation / stale cross-boundary data
+- Secrets leaking to client bundles
+- N+1 queries behind API routes
+
+## Testing Patterns
+- Unit: `npm test` / Vitest / Jest
+- API: supertest / httpx / `httptest`
+- E2E: Playwright / Cypress against a running stack
+- DB: Testcontainers / ephemeral test database
+- `tsc --noEmit` for shared types

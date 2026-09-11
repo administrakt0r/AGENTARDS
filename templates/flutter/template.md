@@ -73,3 +73,18 @@ test/
 - Widget: `testWidgets()`
 - Integration: `integration_test/`
 - Golden tests: `matchesGoldenFile()`
+
+## Common Issues
+- Outdated `pubspec.lock` / SDK constraint drift
+- Platform channel errors on one platform only
+- Large image/font assets not downscaled
+- Missing R8/ProGuard or obfuscation config
+- iOS CocoaPods / `Podfile.lock` drift
+- Unbounded `setState` causing rebuild churn
+
+## Testing Patterns
+- `flutter analyze`
+- `flutter test` (unit + widget)
+- `flutter test integration_test/` for device e2e
+- Golden tests for UI regressions
+- `flutter build apk --debug` smoke

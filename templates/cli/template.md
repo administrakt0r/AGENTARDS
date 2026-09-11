@@ -71,3 +71,18 @@
 - Argument parsing tests
 - Integration tests with real execution
 - Cross-platform testing
+
+## Common Issues
+- Unhandled flags and missing `--help`/`--version`
+- Errors printed to stdout instead of stderr
+- Non-zero exit codes not set on failure
+- Destructive operations without confirmation or `--dry-run`
+- Unbounded output / no paging
+- Hardcoded paths that break on other platforms
+
+## Testing Patterns
+- Unit: `npm test` / `pytest` / `go test ./...` / `cargo test`
+- Golden files asserting exact stdout/stderr
+- Exit-code assertions for failure paths
+- `bats` / `shunit2` for shell entrypoints
+- Smoke: build then run `./tool --help`

@@ -72,3 +72,18 @@
 - Memory allocation optimization
 - HTTP server tuning
 - Database connection pooling
+
+## Common Issues
+- Ignored error returns (missing `err` checks)
+- Goroutine leaks and unclosed response bodies
+- Data races (not run with `-race`)
+- `context` not propagated / no timeouts
+- Unbounded goroutines with no worker limit
+- Module version drift / unverified `go.sum`
+
+## Testing Patterns
+- `go test ./...` and `go test -race ./...`
+- Table-driven unit tests
+- `httptest` for handlers
+- `go vet ./...` and `golangci-lint run`
+- Benchmarks: `go test -bench=. -benchmem`

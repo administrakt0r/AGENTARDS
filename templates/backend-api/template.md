@@ -105,3 +105,17 @@ src/
 - Middleware chaining
 - GORM for database
 - Struct validation
+
+## Common Issues
+- Request input not validated at the boundary (schema/type checks missing)
+- N+1 queries and missing pagination on list endpoints
+- Secrets or connection strings committed in config
+- No timeouts/retries on downstream calls
+- Unhandled async errors crashing the process
+- Irreversible migrations or missing indexes
+
+## Testing Patterns
+- Unit: `npm test` / `pytest` / `go test ./...` / `mvn test`
+- HTTP integration: supertest, httpx/TestClient, `httptest`, MockMvc
+- Contract/schema: OpenAPI validation, Pact
+- Smoke: `curl -f http://localhost:PORT/health`

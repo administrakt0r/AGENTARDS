@@ -72,3 +72,18 @@
 - Auto-update mechanism
 - Platform-specific installers
 - Crash reporting
+
+## Common Issues
+- Oversized installers / unused deps bundled
+- No code signing or notarization (OS warnings)
+- Auto-update failure with no rollback
+- Native dependencies not bundled per-OS
+- Insecure IPC between renderer and main
+- No crash reporting
+
+## Testing Patterns
+- Unit: `npm test` / `cargo test` / `flutter test`
+- E2E: Playwright, WebdriverIO
+- Package smoke: launch the built artifact per OS
+- IPC handler tests with a mocked bridge
+- `tsc --noEmit` / `cargo clippy`

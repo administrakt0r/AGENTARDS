@@ -71,3 +71,18 @@
 - XSS prevention (Blade escaping)
 - SQL injection (Eloquent parameterization)
 - Mass assignment protection
+
+## Common Issues
+- PHP version drift vs `composer.json` platform config
+- Debug/error display enabled in production
+- Raw SQL string interpolation (SQL injection)
+- OPcache / autoload misconfiguration
+- Low `memory_limit` / `max_execution_time`
+- Missing session/cookie security flags
+
+## Testing Patterns
+- `composer test` / `phpunit` / `pest`
+- `php -l` syntax lint (or `composer lint`)
+- Laravel: `php artisan test`, Dusk for browser
+- Static analysis: PHPStan / Psalm
+- Coverage: `phpunit --coverage-text`

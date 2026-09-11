@@ -24,26 +24,26 @@ Scan the repository and list everything:
 echo "=== AGENTS ==="
 for f in agents/*.md; do
   lines=$(wc -l < "$f")
-  has_detect=$(grep -c "Step 1: Detect Stack" "$f" 2>/dev/null || echo 0)
-  has_find=$(grep -c "Step 2: Find Problems" "$f" 2>/dev/null || echo 0)
-  has_fix=$(grep -c "Step 3: Fix What You Find" "$f" 2>/dev/null || echo 0)
-  has_verify=$(grep -c "Step 4: Verify" "$f" 2>/dev/null || echo 0)
-  has_report=$(grep -c "Step 5: Report" "$f" 2>/dev/null || echo 0)
-  has_rg=$(grep -c "rg " "$f" 2>/dev/null || echo 0)
-  has_find_cmd=$(grep -c "^find " "$f" 2>/dev/null || echo 0)
+  has_detect=$(grep -c "Step 1: Detect Stack" "$f" 2>/dev/null || true)
+  has_find=$(grep -c "Step 2: Find Problems" "$f" 2>/dev/null || true)
+  has_fix=$(grep -c "Step 3: Fix What You Find" "$f" 2>/dev/null || true)
+  has_verify=$(grep -c "Step 4: Verify" "$f" 2>/dev/null || true)
+  has_report=$(grep -c "Step 5: Report" "$f" 2>/dev/null || true)
+  has_rg=$(grep -c "rg " "$f" 2>/dev/null || true)
+  has_find_cmd=$(grep -c "^find " "$f" 2>/dev/null || true)
   echo "$f: ${lines} lines | detect:${has_detect} find:${has_find} fix:${has_fix} verify:${has_verify} report:${has_report} rg:${has_rg} find:${has_find_cmd}"
 done
 
 echo ""
 echo "=== TEMPLATES ==="
 for f in templates/*/template.md; do
-  lines=$(wc -l < "$f" 2>/dev/null || echo 0)
+  lines=$(wc -l < "$f" 2>/dev/null || true)
   echo "$f: ${lines} lines"
 done
 
 echo ""
 echo "=== META FILES ==="
-wc -l README.md init.md agenticus-improvicus.md 2>/dev/null || true
+wc -l README.md agenticus-improvicus.md 2>/dev/null || true
 ```
 
 ## Step 2: Quality Analysis
@@ -66,7 +66,7 @@ for f in agents/*.md; do
   done
 
   # Must have actual commands (not just descriptions)
-  rg_count=$(grep -c "rg \|find \|grep \|curl \|cat \|ls " "$f" 2>/dev/null || echo 0)
+  rg_count=$(grep -c "rg \|find \|grep \|curl \|cat \|ls " "$f" 2>/dev/null || true)
   if [ "$rg_count" -gt 5 ]; then
     echo "  ✅ Has real commands (${rg_count} found)"
   else
@@ -74,7 +74,7 @@ for f in agents/*.md; do
   fi
 
   # Must have code examples
-  code_blocks=$(grep -c '```' "$f" 2>/dev/null || echo 0)
+  code_blocks=$(grep -c '```' "$f" 2>/dev/null || true)
   if [ "$code_blocks" -gt 4 ]; then
     echo "  ✅ Has code examples (${code_blocks} code blocks)"
   else
@@ -103,9 +103,9 @@ for f in agents/*.md; do
   fi
 
   # Check for stack-specific patterns (JS, Python, Go at minimum)
-  has_js=$(grep -c "\.ts\|\.tsx\|\.js\|\.jsx\|npm\|node" "$f" 2>/dev/null || echo 0)
-  has_py=$(grep -c "\.py\|python\|pip\|pytest" "$f" 2>/dev/null || echo 0)
-  has_go=$(grep -c "\.go\|go mod\|go test" "$f" 2>/dev/null || echo 0)
+  has_js=$(grep -c "\.ts\|\.tsx\|\.js\|\.jsx\|npm\|node" "$f" 2>/dev/null || true)
+  has_py=$(grep -c "\.py\|python\|pip\|pytest" "$f" 2>/dev/null || true)
+  has_go=$(grep -c "\.go\|go mod\|go test" "$f" 2>/dev/null || true)
   echo "  📊 Stack coverage: JS:${has_js} Py:${has_py} Go:${has_go}"
 
   echo ""
@@ -120,9 +120,9 @@ done
 # Agents should have concrete rg/find commands, not just "scan for X"
 for f in agents/*.md; do
   name=$(basename "$f" .md)
-  # Count actual tool commands vs vague instructions
-  concrete=$(grep -cE "^(rg |find |cat |ls |grep |curl |wc |sort |sed |awk )" "$f" 2>/dev/null || echo 0)
-  vague=$(grep -ciE "scan|check|inspect|look for|search for|discover" "$f" 2>/dev/null || echo 0)
+  # Count tool commands inside code fences vs vague prose outside fences
+  concrete=$(awk '/^```/{fence=!fence; next} fence' "$f" 2>/dev/null | grep -cE "(^|[[:space:]|&;(])(rg|find|grep|curl|cat|ls|wc|sort|sed|awk|npm|pnpm|yarn|pytest|python3?|go|cargo|mvn|gradle|composer|php|docker|docker-compose|kubectl|helm|terraform|dotnet|bundle|mix|make)([[:space:]]|$)")
+  vague=$(awk '/^```/{fence=!fence; next} !fence' "$f" 2>/dev/null | grep -ciE "scan|check|inspect|look for|search for|discover")
   if [ "$concrete" -lt "$vague" ]; then
     echo "WEAK: $name has more vague instructions (${vague}) than concrete commands (${concrete})"
   fi
@@ -135,8 +135,8 @@ done
 # Agents should have before/after code examples
 for f in agents/*.md; do
   name=$(basename "$f" .md)
-  before_count=$(grep -c "Before" "$f" 2>/dev/null || echo 0)
-  after_count=$(grep -c "After" "$f" 2>/dev/null || echo 0)
+  before_count=$(grep -c "Before" "$f" 2>/dev/null || true)
+  after_count=$(grep -c "After" "$f" 2>/dev/null || true)
   if [ "$before_count" -lt 2 ] || [ "$after_count" -lt 2 ]; then
     echo "WEAK: $name has few before/after examples (before:${before_count} after:${after_count})"
   fi
@@ -167,7 +167,7 @@ for f in templates/*/template.md; do
   if ! grep -q "Common Stack Patterns" "$f" 2>/dev/null; then
     echo "WEAK: $template has no common patterns section"
   fi
-  lines=$(wc -l < "$f" 2>/dev/null || echo 0)
+  lines=$(wc -l < "$f" 2>/dev/null || true)
   if [ "$lines" -lt 50 ]; then
     echo "WEAK: $template is thin (${lines} lines, expected 70+)"
   fi
@@ -341,7 +341,7 @@ echo ""
 echo "=== Markdown Check ==="
 for f in agents/*.md templates/*/template.md *.md; do
   # Check for unclosed code blocks
-  opens=$(grep -c '```' "$f" 2>/dev/null || echo 0)
+  opens=$(grep -c '```' "$f" 2>/dev/null || true)
   if [ $((opens % 2)) -ne 0 ]; then
     echo "❌ $f has unclosed code block"
   fi

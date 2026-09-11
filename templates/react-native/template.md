@@ -72,3 +72,18 @@
 - E2E: Detox, Maestro
 - Unit: Jest with react-native preset
 - Snapshot: Jest snapshots
+
+## Common Issues
+- Native module autolinking / version mismatch
+- New Architecture (Fabric/TurboModules) migration gaps
+- Platform-specific (`Platform.OS`) regressions
+- Listener/subscription memory leaks
+- Oversized images / unchecked asset imports
+- Metro cache / stale bundle issues
+
+## Testing Patterns
+- Jest + React Native Testing Library
+- `npx react-native doctor` / `npx expo-doctor`
+- E2E: Detox or Maestro
+- `tsc --noEmit` for TypeScript
+- Android/iOS debug build smoke

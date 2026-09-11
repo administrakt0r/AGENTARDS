@@ -70,3 +70,18 @@
 - Compile-time optimization
 - Benchmark comparisons
 - Binary size optimization
+
+## Common Issues
+- `unwrap()`/`expect()` panicking on production paths
+- Blocking calls inside async runtimes
+- Feature-flag combinations that fail to compile
+- Debug-only success / release-only overflow or ordering
+- Long build times / no incremental or cache
+- Unreviewed `unsafe` blocks
+
+## Testing Patterns
+- `cargo test` and `cargo test --all-features`
+- `cargo nextest run` for faster suites
+- Property tests: `proptest` / `quickcheck`
+- `cargo clippy -- -D warnings`, `cargo fmt --check`
+- Doc tests (`cargo test --doc`)

@@ -82,3 +82,18 @@ tests/
 - Version management
 - Entry points and console scripts
 - Package data and data files
+
+## Common Issues
+- No pinned/isolated environment (`requirements.txt` drift)
+- Blocking I/O in async code / GIL-bound hot paths
+- Mutable default arguments and shared state
+- Import cycles and heavy import-time side effects
+- Missing type hints / mypy failures
+- Bare `except:` swallowing errors
+
+## Testing Patterns
+- `pytest` (with `-q` and coverage)
+- `unittest` for stdlib-only projects
+- Property tests: Hypothesis
+- Lint/type: `ruff`, `mypy`
+- `tox` / `nox` for multi-version matrices

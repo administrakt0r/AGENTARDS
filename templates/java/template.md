@@ -75,3 +75,18 @@ src/
 - MockMvc for controller tests
 - Testcontainers for integration tests
 - Spring Boot Test slices
+
+## Common Issues
+- Dependency/version conflicts (classpath hell)
+- Heap sizing / missing container-aware `-XX` flags
+- Thread pool or connection pool exhaustion
+- Swallowed checked exceptions
+- JPA N+1 and lazy-loading surprises
+- Mutable static state breaking tests
+
+## Testing Patterns
+- `mvn test` / `gradle test`
+- JUnit 5 + Mockito for unit tests
+- Spring Boot `@SpringBootTest` / MockMvc
+- Testcontainers for DB/integration tests
+- ArchUnit for dependency rules

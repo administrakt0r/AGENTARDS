@@ -100,3 +100,18 @@ src/
 - State: writable, readable, derived stores
 - Styling: scoped styles
 - Key files: `src/routes/+page.svelte`, `src/app.html`
+
+## Common Issues
+- XSS via `dangerouslySetInnerHTML` / unsanitized HTML
+- Stale closures and effect cleanup/memory leaks
+- Unnecessary re-renders / missing memoization
+- Bundle bloat and duplicate dependencies
+- Accessibility gaps (focus, labels, contrast)
+- Hydration mismatches in SSR frameworks
+
+## Testing Patterns
+- Unit: Jest / Vitest
+- Component: React Testing Library / Vue Test Utils
+- E2E: Playwright / Cypress
+- `tsc --noEmit`, ESLint, stylelint
+- Build smoke: `npm run build` then preview

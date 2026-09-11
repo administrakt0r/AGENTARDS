@@ -72,3 +72,18 @@
 - Unused resource detection
 - Reserved instance planning
 - Cost anomaly detection
+
+## Common Issues
+- Unpinned provider/module versions
+- Secrets in state or plaintext variables
+- No remote state backend or state locking
+- Missing resource limits and `latest` image tags
+- No plan review or rollback before apply
+- Configuration drift between environments
+
+## Testing Patterns
+- `terraform validate` then `terraform plan` (never blindly apply)
+- `ansible-playbook --check --diff`
+- `shellcheck` scripts and `yamllint` manifests
+- `kubeconform` / `kubeval` for K8s manifests
+- `docker compose config` for compose validation

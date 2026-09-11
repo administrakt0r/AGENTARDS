@@ -69,3 +69,18 @@ src/ or app/              # Frontend app
 - Auto-update configuration
 - Code signing
 - Bundle size optimization
+
+## Common Issues
+- Capabilities/permissions too broad in `tauri.conf.json`
+- Unsigned updater / missing updater signing key
+- Unvalidated IPC command arguments
+- Webview inconsistencies across platforms
+- Large bundle from unused frontend deps
+- Rust panics surfacing as blank windows
+
+## Testing Patterns
+- `cargo test` for Rust commands
+- Frontend unit: Vitest/Jest with mocked `@tauri-apps/api`
+- E2E: WebdriverIO with `tauri-driver`
+- `cargo clippy` / `tsc --noEmit`
+- `cargo tauri build` smoke
