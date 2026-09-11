@@ -66,3 +66,16 @@
 - Auto-update channels
 - Platform installers
 - Crash reporting
+
+### Testing
+- Main process: Jest with electron mocks
+- Renderer: React Testing Library / Vitest
+- E2E: Spectron / Playwright
+- IPC: Mock ipcMain/ipcRenderer
+
+### Common Issues
+- Context bridge not exposing APIs
+- Preload script not loading (check file path)
+- CSP blocking resources
+- Auto-update failing (check code signing)
+- Window not closing (check beforeunload)

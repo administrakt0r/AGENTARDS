@@ -186,6 +186,45 @@ export function createdLabel(iso: string): string {
 }
 ```
 
+### Fix Pattern: Remove Unused Export
+
+```typescript
+// Before (unused export)
+export function deprecatedHelper() {
+  return 'old logic';
+}
+
+export function activeHelper() {
+  return 'new logic';
+}
+
+// After (remove the unused export)
+export function activeHelper() {
+  return 'new logic';
+}
+```
+
+### Fix Pattern: Remove Unused Dependency
+
+```json
+// Before (package.json with unused dependency)
+{
+  "dependencies": {
+    "express": "^4.18.0",
+    "lodash": "^4.17.0",
+    "moment": "^2.29.0"
+  }
+}
+
+// After (remove unused moment - using native Date instead)
+{
+  "dependencies": {
+    "express": "^4.18.0",
+    "lodash": "^4.17.0"
+  }
+}
+```
+
 ## Step 4: Verify
 
 ```bash

@@ -204,6 +204,62 @@ coverage
 .nyc_output
 ```
 
+### Fix Python Dockerfile
+
+```dockerfile
+# Before
+FROM python:3.11
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+CMD ["python", "app.py"]
+
+# After (optimized)
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+FROM python:3.11-slim
+WORKDIR /app
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+COPY --from=builder /install /usr/local
+COPY --chown=appuser:appgroup . .
+USER appuser
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+CMD ["python", "app.py"]
+```
+
+### Fix Go Dockerfile
+
+```dockerfile
+# Before
+FROM golang:1.21
+WORKDIR /app
+COPY . .
+RUN go build -o main .
+CMD ["./main"]
+
+# After (multi-stage with minimal image)
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-w -s' -o /main .
+
+FROM alpine:3.19
+RUN addgroup -g 1001 appgroup && adduser -S appuser -u 1001 -G appgroup
+COPY --from=builder --chown=appuser:appgroup /main /main
+USER appuser
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+CMD ["/main"]
+```
+
 ### Fix Compose
 
 ```yaml
@@ -246,6 +302,17 @@ fi
 # Validate compose
 if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ]; then
   docker compose config 2>&1 | tail -10
+fi
+
+# Run tests
+if [ -f package.json ]; then
+  npm test 2>&1 | tail -20
+fi
+if [ -f go.mod ]; then
+  go test ./... 2>&1 | tail -20
+fi
+if [ -f pyproject.toml ] || [ -f requirements.txt ]; then
+  python -m pytest 2>&1 | tail -20
 fi
 ```
 

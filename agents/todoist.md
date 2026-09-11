@@ -272,6 +272,17 @@ git status --short 2>/dev/null | head -10
 
 # Verify file structure
 find . -maxdepth 2 -type f \( -name "*.md" -o -name ".editorconfig" -o -name ".gitignore" \) 2>/dev/null | sort
+
+# Run tests
+if [ -f package.json ]; then
+  npm test 2>&1 | tail -20
+fi
+if [ -f go.mod ]; then
+  go test ./... 2>&1 | tail -20
+fi
+if [ -f pyproject.toml ] || [ -f requirements.txt ]; then
+  python -m pytest 2>&1 | tail -20
+fi
 ```
 
 ## Step 5: Report

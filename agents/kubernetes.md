@@ -240,6 +240,17 @@ if command -v kubectl &>/dev/null; then
     fi
   done
 fi
+
+# Run tests
+if [ -f package.json ]; then
+  npm test 2>&1 | tail -20
+fi
+if [ -f go.mod ]; then
+  go test ./... 2>&1 | tail -20
+fi
+if [ -f pyproject.toml ] || [ -f requirements.txt ]; then
+  python -m pytest 2>&1 | tail -20
+fi
 ```
 
 ## Step 5: Report

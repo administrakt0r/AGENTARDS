@@ -198,6 +198,26 @@ variable "instance_count" {
 }
 ```
 
+### Fix Resource Naming
+
+```hcl
+# Before
+resource "aws_instance" "web_server" {
+  ami           = "ami-12345678"
+  instance_type = "t2.micro"
+}
+
+# After (using variables and consistent naming)
+resource "aws_instance" "web" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+
+  tags = {
+    Name = "${var.project}-${var.environment}-web"
+  }
+}
+```
+
 ### Add Tags
 
 ```hcl
@@ -260,6 +280,17 @@ fi
 # Check HCL formatting
 if command -v terraform &>/dev/null; then
   terraform fmt -check -recursive . 2>&1 | head -10
+fi
+
+# Run tests
+if [ -f package.json ]; then
+  npm test 2>&1 | tail -20
+fi
+if [ -f go.mod ]; then
+  go test ./... 2>&1 | tail -20
+fi
+if [ -f pyproject.toml ] || [ -f requirements.txt ]; then
+  python -m pytest 2>&1 | tail -20
 fi
 ```
 

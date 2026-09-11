@@ -158,7 +158,17 @@ app.post('/users', async (req, res) => {
 ### Standardize Error Responses
 
 ```typescript
-// Create consistent error handler
+// Before
+app.post('/users', async (req, res) => {
+  try {
+    const user = await createUser(req.body);
+    res.json(user);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+// After (consistent error structure)
 class ApiError extends Error {
   constructor(
     public statusCode: number,
@@ -169,7 +179,6 @@ class ApiError extends Error {
   }
 }
 
-// Middleware
 function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
   if (err instanceof ApiError) {
     return res.status(err.statusCode).json({
@@ -185,6 +194,15 @@ function errorHandler(err: Error, req: Request, res: Response, next: NextFunctio
     error: { message: 'Internal server error', code: 500 }
   });
 }
+
+app.post('/users', async (req, res, next) => {
+  try {
+    const user = await createUser(req.body);
+    res.status(201).json(user);
+  } catch (error) {
+    next(new ApiError(500, 'Failed to create user', error));
+  }
+});
 ```
 
 ### Add Rate Limiting
