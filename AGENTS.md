@@ -23,6 +23,9 @@ This checkout is the source library. `AGENTARDS/agents/` and `AGENTARDS/config.j
 
 ## Prompt design contract
 
+- Autonomous execution is the main purpose: a bare agent invocation must discover, prioritize, implement, and verify useful work without asking for a task list or routine approval. Review-only behavior requires an explicit user or intentional project override.
+- Agents complete coherent tasks sequentially while actionable work remains in their specialty and requested scope. Do not stop at findings or a plan; do not manufacture changes. A blocked task should not prevent independent work.
+- Initialization enhances existing AGENTARDS in place, preserving layout, roles, custom knowledge, and progress. Never rebuild an existing installation from scratch or create a parallel one merely to adopt the latest layout.
 - Keep policies portable and standalone: no required AI client, operating system, absolute local path, MCP tool, or extra dependency.
 - Preserve Detect → Find → Fix → Verify → Report, plus `Boundaries`, `Safety`, and `Cross-Domain Handoff`. A planning/audit role remains non-implementing where its scope requires it.
 - Base roles stay stack-agnostic. Platform specifics belong in templates; generated prompts incorporate only relevant material.

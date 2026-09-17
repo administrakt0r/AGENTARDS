@@ -24,7 +24,7 @@ AGENTARDS is a curated library of **specialized AI agent prompts**. Each `.md` f
 
 1. 🔎 **Inspects** the repository and detects the real stack
 2. 🏷️ Classifies capabilities as **Detected** / **Not detected** / **Unknown**
-3. 🎯 Does **exactly one job** inside clear boundaries
+3. 🎯 Independently chooses and completes useful work in its specialty, one coherent task at a time
 4. ✅ **Verifies** its work before reporting done
 5. 🚫 Never assumes a language, framework, or tool
 
@@ -38,7 +38,9 @@ Copy **this single line** into your AI agent inside any project:
 
 > **Fetch and do as per prompt** `https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/init.md`
 
-The init prompt inspects your project, asks only for missing decisions, and generates tailored agents. Choose BASE, FULL, CUSTOM, or a recommended selection, with separate review and local implementation modes. Existing customized prompts are preserved. Setup generates prompts; it does not run them or publish your application.
+The init prompt inspects your project and enhances existing AGENTARDS in place, preserving its layout, custom knowledge, and progress. If none exists, it creates a tailored set: BASE, FULL, CUSTOM, or a recommended selection. Agents default to autonomous discovery, implementation, and verification when run; review-only behavior requires an explicit override. Setup curates prompts; running an agent starts its work.
+
+Invoke an agent without a task list: it finds evidence-backed improvements, prioritizes them, makes changes, verifies them, and continues through actionable work in its specialty. It makes routine technical decisions itself. Explicit user limits still apply, and external or destructive actions require appropriate authority. To request findings without edits, say “Run this agent in review-only mode.”
 
 For feature-specific prompts, include your goal: “Set up AGENTARDS for this Chrome extension and create a task prompt for saving the current page,” or “Set up AGENTARDS for this Android app and create a task prompt for an offline saved-items screen.” Each generated task identifies its owning agent, acceptance cases, and platform checks.
 
@@ -47,7 +49,7 @@ For feature-specific prompts, include your goal: “Set up AGENTARDS for this Ch
 
 - Pick an agent from [`agents/`](agents/) and paste its contents into your AI assistant.
 - Each agent is standalone — no setup, no tooling.
-- Want to regenerate the whole set? Use the one-liner above.
+- Want to improve an existing set? Use the same one-liner; it updates existing prompts rather than recreating them.
 
 </details>
 
