@@ -7,7 +7,7 @@
 *Import one. It detects your stack, finds what's wrong, fixes it, verifies the work, and reports — safely.*
 
 [![Agents](https://img.shields.io/badge/agents-19-blueviolet?style=for-the-badge)](#-agents)
-[![Templates](https://img.shields.io/badge/templates-16-blue?style=for-the-badge)](#-project-type-templates)
+[![Templates](https://img.shields.io/badge/templates-18-blue?style=for-the-badge)](#-project-type-templates)
 [![Lifecycle](https://img.shields.io/badge/lifecycle-5--step-orange?style=for-the-badge)](#-the-agent-contract)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](#-license)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](#-contributing)
@@ -38,7 +38,9 @@ Copy **this single line** into your AI agent inside any project:
 
 > **Fetch and do as per prompt** `https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/init.md`
 
-That's it. The init prompt asks a few questions, detects your stack, and generates a tailored set of agents for your repo.
+The init prompt inspects your project, asks only for missing decisions, and generates tailored agents. Choose BASE, FULL, CUSTOM, or a recommended selection, with separate review and local implementation modes. Existing customized prompts are preserved. Setup generates prompts; it does not run them or publish your application.
+
+For feature-specific prompts, include your goal: “Set up AGENTARDS for this Chrome extension and create a task prompt for saving the current page,” or “Set up AGENTARDS for this Android app and create a task prompt for an offline saved-items screen.” Each generated task identifies its owning agent, acceptance cases, and platform checks.
 
 <details>
 <summary>Prefer to browse first?</summary>
@@ -108,6 +110,8 @@ Templates in [`templates/`](templates/) add stack-specific detection and fix pat
 | `backend-api` | Express, NestJS, Django, FastAPI, Laravel, Gin, Fiber |
 | `fullstack` | Monorepo with frontend + backend |
 | `mobile` | React Native, Flutter, native iOS/Android |
+| `android` | Gradle modules/variants, Compose/Views, lifecycle, permissions, device verification |
+| `chrome-extension` | Manifest V3, workers, content scripts, messaging, permissions, browser verification |
 | `desktop` | Electron, Tauri, WPF |
 | `cli` | Commander, Click, Cobra, clap |
 | `devops` | CI/CD, containers, IaC |
@@ -166,7 +170,7 @@ These prompts are **stack-agnostic** — they adapt to whatever they find:
 |:---------|:---------|
 | **Languages** | JavaScript, TypeScript, Python, Go, PHP, Java, Ruby, Rust, Swift, Kotlin, Dart, C#, Elixir, Lua |
 | **Frameworks** | React, Vue, Angular, Svelte, Next.js, Nuxt, Django, Flask, FastAPI, Laravel, Rails, Gin, Fiber, Express, NestJS, Spring Boot |
-| **Platforms** | Web, Mobile (React Native, Flutter, native), Desktop (Electron, Tauri), CLI, Serverless |
+| **Platforms** | Web, Chrome extensions, Mobile (React Native, Flutter, native Android/iOS), Desktop (Electron, Tauri), CLI, Serverless |
 | **Tools** | Docker, Kubernetes, Terraform, GitHub Actions, GitLab CI, CircleCI, Jenkins |
 
 ---
@@ -176,6 +180,7 @@ These prompts are **stack-agnostic** — they adapt to whatever they find:
 ```text
 AGENTARDS/
 ├── README.md                # This file
+├── AGENTS.md                # Fast orientation and contributor rules for AI agents
 ├── init.md                  # One-line init prompt target (fetched via URL)
 ├── agenticus-improvicus.md   # Self-improvement meta-prompt
 ├── agents/                  # Base agent prompts (stack-agnostic)
@@ -203,6 +208,8 @@ AGENTARDS/
     ├── backend-api/
     ├── fullstack/
     ├── mobile/
+    ├── android/
+    ├── chrome-extension/
     ├── desktop/
     ├── cli/
     ├── devops/
@@ -226,7 +233,8 @@ To add or improve an agent prompt:
 - Keep the **5-step lifecycle** (Detect → Find → Fix → Verify → Report)
 - Keep it **stack-agnostic** — include concrete detection commands and before/after examples
 - Preserve the **Boundaries**, **Safety**, and **Cross-Domain Handoff** sections
-- Run `agenticus-improvicus.md` for a quality pass
+- Start with [`AGENTS.md`](AGENTS.md) for source ownership, validation, and safe editing rules
+- Use `agenticus-improvicus.md` when a broad prompt-library quality pass is requested
 
 ---
 
