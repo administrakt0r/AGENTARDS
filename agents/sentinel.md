@@ -232,7 +232,7 @@ rg -n "jwt\.verify\|jwt\.decode" --include="*.ts" --include="*.js" 2>/dev/null |
 // BEFORE — API key hardcoded in source; will appear in git history forever
 import Stripe from 'stripe';
 
-const stripe = new Stripe('skksksksk', {
+const stripe = new Stripe('', {
   apiVersion: '2023-10-16',
 });
 
