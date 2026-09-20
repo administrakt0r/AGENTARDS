@@ -6,7 +6,7 @@
 
 *Import one. It detects your stack, finds what's wrong, fixes it, verifies the work, and reports — safely.*
 
-[![Agents](https://img.shields.io/badge/agents-19-blueviolet?style=for-the-badge)](#-agents)
+[![Agents](https://img.shields.io/badge/agents-26-blueviolet?style=for-the-badge)](#-agents)
 [![Templates](https://img.shields.io/badge/templates-18-blue?style=for-the-badge)](#-project-type-templates)
 [![Lifecycle](https://img.shields.io/badge/lifecycle-5--step-orange?style=for-the-badge)](#-the-agent-contract)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](#-license)
@@ -34,22 +34,27 @@ No installs. No dependencies. Just prompts that behave like careful engineers.
 
 ## 🚀 Quick Start
 
-Copy **this single line** into your AI agent inside any project:
+Paste **this single instruction** into your AI agent (Claude, Gemini, GPT-4, Opencode, Codex, Cursor — any agent that can fetch URLs):
 
-> **Fetch and do as per prompt** `https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/init.md`
+```sh
+Fetch and do as per prompt: https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/init.md
+```
 
-The init prompt inspects your project and enhances existing AGENTARDS in place, preserving its layout, custom knowledge, and progress. If none exists, it creates a tailored set: BASE, FULL, CUSTOM, or a recommended selection. Agents default to autonomous discovery, implementation, and verification when run; review-only behavior requires an explicit override. Setup curates prompts; running an agent starts its work.
+That's it. The init prompt does the rest:
 
-Invoke an agent without a task list: it finds evidence-backed improvements, prioritizes them, makes changes, verifies them, and continues through actionable work in its specialty. It makes routine technical decisions itself. Explicit user limits still apply, and external or destructive actions require appropriate authority. To request findings without edits, say “Run this agent in review-only mode.”
+- **New project:** inspects your stack, selects the right agents (BASE, FULL, or RECOMMENDED), fetches them, tailors them to your project, and writes them into `AGENTARDS/agents/`.
+- **Existing AGENTARDS install:** updates drifted agents in place — improves detection commands, expands fix examples, adds the `Senior Engineering Standards` block, and updates the Cross-Domain Handoff table. **Your customizations are preserved.**
 
-For feature-specific prompts, include your goal: “Set up AGENTARDS for this Chrome extension and create a task prompt for saving the current page,” or “Set up AGENTARDS for this Android app and create a task prompt for an offline saved-items screen.” Each generated task identifies its owning agent, acceptance cases, and platform checks.
+Once agents are set up, invoke any agent without giving it a task list — it finds evidence-backed improvements, prioritizes them, makes changes, verifies them, and continues. To get findings without edits, say *"Run this agent in review-only mode."*
+
+For feature-specific tasks: `"Set up AGENTARDS for this Chrome extension and create a task prompt for saving the current page."` Each generated task identifies its owning agent, acceptance cases, and platform checks.
 
 <details>
 <summary>Prefer to browse first?</summary>
 
-- Pick an agent from [`agents/`](agents/) and paste its contents into your AI assistant.
-- Each agent is standalone — no setup, no tooling.
-- Want to improve an existing set? Use the same one-liner; it updates existing prompts rather than recreating them.
+- Pick any agent from [`agents/`](agents/) and paste its contents into your AI assistant.
+- Each agent is standalone — no setup, no tooling required.
+- Want to update an existing install? Run the same one-liner; it patches, never recreates.
 
 </details>
 
@@ -99,6 +104,18 @@ Every agent follows the same contract, so results are predictable and safe.
 | `mobile` | 📱 | Mobile systems |
 | `aiml` | 🧠 | Machine learning |
 | `todoist` | 🤖 | Planning & audit |
+
+### 🔧 Engineering Quality (NEW)
+
+| Agent | Emoji | Specialty |
+|:------|:-----:|:----------|
+| `refactorer` | ♻️ | Code structure, SOLID/DRY/KISS, complexity |
+| `architect` | 🏛️ | Architectural drift, layer violations, circular deps |
+| `linter` | 📐 | Style, formatting, naming conventions |
+| `typesafe` | 🔒 | Type safety, `any` elimination, strict mode |
+| `errors` | ⚠️ | Error handling, boundaries, retry patterns |
+| `a11y` | ♿ | WCAG 2.2 accessibility (deep specialist) |
+| `syncer` | 🔄 | Self-update: keeps AGENTARDS current with upstream |
 
 ---
 
@@ -204,7 +221,14 @@ AGENTARDS/
 │   ├── terraform.md         #   🏗️ IaC
 │   ├── mobile.md            #   📱 mobile
 │   ├── aiml.md              #   🧠 ML
-│   └── todoist.md           #   🤖 planning
+│   ├── todoist.md           #   🤖 planning
+│   ├── refactorer.md        #   ♻️ code structure & SOLID
+│   ├── architect.md         #   🏛️ architecture & layers
+│   ├── linter.md            #   📐 style & formatting
+│   ├── typesafe.md          #   🔒 type safety
+│   ├── errors.md            #   ⚠️ error handling
+│   ├── a11y.md              #   ♿ accessibility (WCAG 2.2)
+│   └── syncer.md            #   🔄 self-update
 └── templates/               # Project-type customizations
     ├── web-frontend/
     ├── backend-api/

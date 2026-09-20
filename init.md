@@ -36,12 +36,12 @@ A web app manifest is not an extension manifest. Gradle alone does not prove And
 Use the request and inspection to resolve these choices; ask material unanswered questions together. Continue independent inspection while waiting. Do not block setup on optional preferences.
 
 - **Goal:** maintenance, a particular development feature, or both? For an empty project, establish platform, intended behavior, and language/framework before tailoring prompts.
-- **Set:** retain the existing selection on updates unless a change is requested. For new setups: BASE (exactly `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`), FULL (all 19 roles), CUSTOM (exactly the user's selected roles), or RECOMMENDED (BASE plus justified specialists; default when unspecified).
+- **Set:** retain the existing selection on updates unless a change is requested. For new setups: BASE (exactly `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`), FULL (all 26 roles), CUSTOM (exactly the user's selected roles), or RECOMMENDED (BASE plus justified specialists; default when unspecified).
 - **Future execution mode:** default to `implement`: autonomous discovery, prioritization, local implementation, and verification. Do not ask whether to start or require a supplied task. Use `review` only when the user explicitly requests it or an existing project-specific instruction deliberately requires it. Replace inherited boilerplate review defaults during updates; preserve intentional local restrictions. Commit/push/publish authority remains separate; honor it when already granted.
 - **Priorities/constraints:** pain points, browser/Android versions, forbidden paths, device availability, and release constraints not already documented.
 - **Progress tracking:** optional `.agentards/` records, off by default. This differs from the required generated `AGENTARDS/config.json`.
 
-Do not add roles silently to BASE or CUSTOM. FULL retains all roles, with irrelevant ones reporting **Not applicable** without changes. For RECOMMENDED, justify additions: `hunter` for defects, `testing` for verification (including missing coverage), `api` for contracts/messaging, `database` for persistence, `mobile` for mobile behavior, and other specialists where supported. Search/SEO (`buddha`) is not automatically relevant to an extension or native app.
+Do not add roles silently to BASE or CUSTOM. FULL retains all roles, with irrelevant ones reporting **Not applicable** without changes. For RECOMMENDED, justify additions: `hunter` for defects, `testing` for verification (including missing coverage), `api` for contracts/messaging, `database` for persistence, `mobile` for mobile behavior, `errors` for systemic error handling gaps, `typesafe` for weak typing, `refactorer` for structural debt, `architect` for layer violations, `linter` for style drift, `a11y` for accessibility requirements, `syncer` for keeping the AGENTARDS install current, and other specialists where supported. Search/SEO (`buddha`) is not automatically relevant to an extension or native app.
 
 ## 3. Load selected sources
 
@@ -51,7 +51,7 @@ Prefer a user-provided local AGENTARDS checkout or revision. Otherwise fetch:
 - Agent: `https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/agents/<name>.md`
 - Template: `https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/templates/<type>/template.md`
 
-Available agents: `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`, `hunter`, `testing`, `buddha`, `database`, `api`, `monitoring`, `cicd`, `docker`, `kubernetes`, `terraform`, `mobile`, `aiml`, `todoist`.
+Available agents: `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`, `hunter`, `testing`, `buddha`, `database`, `api`, `monitoring`, `cicd`, `docker`, `kubernetes`, `terraform`, `mobile`, `aiml`, `todoist`, `refactorer`, `architect`, `linter`, `typesafe`, `errors`, `a11y`, `syncer`.
 
 Available templates: `web-frontend`, `backend-api`, `fullstack`, `mobile`, `android`, `chrome-extension`, `desktop`, `cli`, `devops`, `python`, `php`, `go`, `rust`, `java`, `react-native`, `flutter`, `electron`, `tauri`.
 
@@ -82,7 +82,28 @@ Resolve contradictions while composing: routine local work already authorized by
 
 ## 5. Update in place, or create missing output
 
-For an existing installation, patch the current files directly: improve stale commands, weak autonomy, missing stack guidance, verification gaps, and contradictions while retaining useful custom instructions and history. Do not regenerate the set from scratch, replace customized policies wholesale with upstream copies, create a parallel installation, or reset progress. Add only missing files justified by the requested scope. If nothing warrants improvement, report that result without rewriting files.
+For an existing installation, patch the current files directly using this merge strategy:
+
+**What to update (upstream improvements applied):**
+- Detect step commands — replace vague `scan for X` prose with concrete `rg`/`find` commands matching the upstream version
+- Fix examples — replace toy 3-line snippets with production-grade multi-step before/after examples
+- Verify step — expand to include typecheck (`tsc --noEmit`), lint (`eslint --max-warnings=0`, `ruff`, `golangci-lint`), tests, and build with exit-code checking
+- Cross-Domain Handoff table — add any rows present in upstream but missing locally (newly added agents)
+- `## Senior Engineering Standards` section — add if absent; never overwrite if present with project-specific content
+- `config.json` — update `schema_version`, `agents` list, and `sources` provenance without overwriting project-level `capabilities` or `permissions`
+
+**What to preserve unconditionally:**
+- The `## Your Job` mission content — project-specific overrides to an agent's scope must survive updates
+- Any project-specific commands, paths, or workflow notes added to an agent's Detect or Find steps
+- Custom knowledge blocks added below the Safety section
+- Progress records in `.agentards/`
+- The root `AGENTS.md` — never overwrite
+
+**Convergence guarantee:** Applying the same update twice must produce no diff on the second run. Compare section content before writing; skip sections that already match upstream. If a section exists locally but differs from upstream, apply the upstream version only if the local version is a strict subset (i.e., upstream adds content without removing anything). If upstream removes content the local file has, preserve the local content and report the conflict.
+
+**Adding new agents:** When upstream adds an agent not present locally, add it to `AGENTARDS/agents/` and to `config.json` agents list only if the project's set is FULL. For BASE/CUSTOM/RECOMMENDED sets, report the new agent as available but do not install it without a selection change request.
+
+Do not regenerate the set from scratch, replace customized policies wholesale with upstream copies, create a parallel installation, or reset progress. Add only missing files justified by the requested scope. If nothing warrants improvement, report that result without rewriting files.
 
 The following layout is for a new installation, not a migration requirement:
 

@@ -4,6 +4,10 @@
 
 Record evidence for Kotlin/Java or a cross-platform host, Gradle wrapper, Android Gradle Plugin, JDK/SDK availability, modules/variants, `minSdk`/`targetSdk`/`compileSdk`, Compose/XML UI, persistence, and testing. Classify **Detected / Not detected / Unknown**. Do not assume an `app` module, `debug` variant, installed SDK, or connected device.
 
+## Official Android Skills
+
+Use the official Android agent skills from [`android/skills`](https://github.com/android/skills) when the task matches one of them. They are installed for Codex in `~/.codex/skills/` and for OpenCode in `~/.opencode/skills/`; load the relevant local `SKILL.md` before acting, and follow its required references or scripts. Select only relevant skills, preserve the repository's existing architecture, and report unavailable tooling or unrun device checks as **Unknown** rather than treating a skill's instructions as evidence.
+
 ## Project Type Detection Signals
 
 ```bash
