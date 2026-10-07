@@ -7,7 +7,7 @@
 *Import one. It detects your stack, finds what's wrong, fixes it, verifies the work, and reports — safely.*
 
 [![Agents](https://img.shields.io/badge/agents-26-blueviolet?style=for-the-badge)](#-agents)
-[![Templates](https://img.shields.io/badge/templates-18-blue?style=for-the-badge)](#-project-type-templates)
+[![Templates](https://img.shields.io/badge/templates-20-blue?style=for-the-badge)](#-project-type-templates)
 [![Lifecycle](https://img.shields.io/badge/lifecycle-5--step-orange?style=for-the-badge)](#-the-agent-contract)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](#-license)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](#-contributing)
@@ -42,10 +42,11 @@ Fetch and do as per prompt: https://raw.githubusercontent.com/administrakt0r/AGE
 
 That's it. The init prompt does the rest:
 
-- **New project:** inspects your stack, selects the right agents (BASE, FULL, or RECOMMENDED), fetches them, tailors them to your project, and writes them into `AGENTARDS/agents/`.
-- **Existing AGENTARDS install:** updates drifted agents in place — improves detection commands, expands fix examples, adds the `Senior Engineering Standards` block, and updates the Cross-Domain Handoff table. **Your customizations are preserved.**
+- **New project:** inspects your stack, selects the right agents (BASE, FULL, or RECOMMENDED), fetches them, tailors them to your project with stack anti-pattern checklists and Context7 industry standards, initializes dedicated per-agent run logs (`<AGENT>_LOG.md`), and writes them into `AGENTARDS/agents/`.
+- **Existing AGENTARDS install:** updates drifted agents in place — injects stack-specific anti-pattern checklists, adds `## Industry Standards (verified via Context7)` blocks, redirects older legacy prompts (e.g. `julesprompts/`, flat uppercase files) to the canonical prompts, and establishes per-agent logs without losing project-specific context. **Your customizations, business rules, and boundaries are preserved.**
 
-Once agents are set up, invoke any agent without giving it a task list — it finds evidence-backed improvements, prioritizes them, makes changes, verifies them, and continues. To get findings without edits, say *"Run this agent in review-only mode."*
+Once agents are set up, invoke any agent without giving it a task list — it finds evidence-backed improvements, prioritizes them, makes changes, verifies them, and logs its run. To get findings without edits, say *"Run this agent in review-only mode."*
+
 
 For feature-specific tasks: `"Set up AGENTARDS for this Chrome extension and create a task prompt for saving the current page."` Each generated task identifies its owning agent, acceptance cases, and platform checks.
 
@@ -125,6 +126,8 @@ Templates in [`templates/`](templates/) add stack-specific detection and fix pat
 
 | Template | Covers |
 |:---------|:-------|
+| `cloudflare-workers` | Cloudflare Workers edge runtime, D1 SQLite, Turnstile, KV, Wrangler 4 |
+| `react-router` | React Router 7 SSR, Vite 8, Tailwind CSS v4, Vitest, bundle budgets |
 | `web-frontend` | React, Vue, Angular, Svelte, Next.js, Nuxt |
 | `backend-api` | Express, NestJS, Django, FastAPI, Laravel, Gin, Fiber |
 | `fullstack` | Monorepo with frontend + backend |
@@ -143,6 +146,7 @@ Templates in [`templates/`](templates/) add stack-specific detection and fix pat
 | `flutter` | Provider, Bloc, Riverpod |
 | `electron` | Main/renderer process, IPC |
 | `tauri` | Rust commands, capabilities |
+
 
 ---
 
