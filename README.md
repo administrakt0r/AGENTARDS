@@ -26,7 +26,7 @@
 > Fetch and do as per prompt: https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/init.md
 > ```
 > 
-> *Automatically detects your stack, injects tailored anti-pattern checklists and Context7 industry standards, and initializes your per-agent `<AGENT>_LOG.md` history. Zero configuration required.*
+> *Automatically detects your stack, tailors anti-pattern checklists and Context7 industry standards to your project, and installs clean autonomous agents inside `AGENTARDS/`. Zero configuration required.*
 > 
 > **[Read Quick Start Guide ↓](#-quick-start)** &nbsp;|&nbsp; **[Browse 26 Agents ↓](#-the-26-autonomous-agents)** &nbsp;|&nbsp; **[View Supported Stacks ↓](#-project-type-templates-20-stacks)**
 
@@ -93,8 +93,8 @@ Fetch and do as per prompt: https://raw.githubusercontent.com/administrakt0r/AGE
 ```
 
 **What happens:**
-- **Fresh repository**: Detects your stack, selects the right agent set, tailors anti-pattern checklists and Context7 industry standards to your frameworks, initializes dedicated `./<AGENT>_LOG.md` files, and installs them into `AGENTARDS/agents/`.
-- **Existing repository**: Upgrades drifted agents in place with modern checklists and verification commands. **Your existing customizations, business boundaries, custom paths, and privacy policies are preserved unconditionally.** Legacy prompts (e.g. `julesprompts/`, older flat files) are updated with clean forwarding stubs.
+- **Fresh repository**: Detects your stack, selects the right agent set, tailors anti-pattern checklists and Context7 industry standards to your frameworks, and installs them cleanly into `AGENTARDS/agents/`. Zero files or folders created outside the `AGENTARDS/` directory.
+- **Existing repository**: Upgrades drifted agents in place inside `AGENTARDS/agents/` with modern checklists and verification commands. **Your existing customizations, business boundaries, custom paths, and privacy policies are preserved unconditionally.**
 
 ### Option B: Run a Single Specialist Directly
 Need immediate help with a specific problem? Browse [`agents/`](agents/), copy the contents of any `.md` file, and paste it directly into your assistant:
@@ -217,26 +217,18 @@ Every AGENTARDS prompt enforces the same non-negotiable contract:
 
 ## 🗂️ Standard Repository Layout
 
-When installed into a target project, AGENTARDS establishes a clean, non-invasive layout:
+When installed into a target project, AGENTARDS is completely self-contained within the `AGENTARDS/` directory:
 
 ```text
 your-project/
-├── AGENTS.md                    # Repository guidelines, available agents & usage loop
-├── BOLT.md                      # Root convenience prompt for performance
-├── SENTINEL.md                  # Root convenience prompt for security
-├── CUSTODIAN.md                 # Root convenience prompt for cleanup
-├── BOLT_LOG.md                  # Dedicated run log for Bolt runs
-├── SENTINEL_LOG.md              # Dedicated run log for Sentinel runs
-├── CUSTODIAN_LOG.md             # Dedicated run log for Custodian runs
-├── AGENTARDS/
-│   ├── config.json              # Detected capabilities, active agents & verification commands
-│   ├── README.md                # Local agent catalog and usage instructions
-│   ├── agents/                  # Standalone canonical policies tailored to your stack
-│   │   ├── bolt.md
-│   │   ├── sentinel.md
-│   │   └── custodian.md
-│   └── templates/               # Copies of detected stack templates
-└── julesprompts/                # Forwarding stubs pointing to canonical prompts
+└── AGENTARDS/
+    ├── config.json              # Detected capabilities, active agents & verification commands
+    ├── README.md                # Local agent catalog and usage instructions
+    ├── agents/                  # Standalone canonical policies tailored to your stack
+    │   ├── bolt.md
+    │   ├── sentinel.md
+    │   └── custodian.md
+    └── templates/               # Copies of detected stack templates
 ```
 
 ---

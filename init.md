@@ -17,7 +17,7 @@ Read enough of the project to identify:
 - Frameworks, package manager, existing architecture, and generated-file boundaries.
 - Actual build, test, lint, type-check, packaging, and CI commands with their working directories.
 - Interfaces, data storage, permissions, distribution targets, and existing tests.
-- Existing prompt locations (e.g. root prompts, `AGENTARDS/`, `julesprompts/`, task prompts) and run logs (e.g. `*_LOG.md`, monolithic logs like `AGENTY_LOG.md`).
+- Existing documentation, guidelines, or task files.
 
 Use focused searches such as `rg --files -g '!node_modules' -g '!vendor' -g '!build' -g '!dist'`; adapt to available tools and repository structure. Read manifests before executing project scripts. Do not dump credentials, environment files, or signing material.
 
@@ -43,7 +43,6 @@ Use the request and inspection to resolve these choices; ask material unanswered
 - **Set:** retain the existing selection on updates unless a change is requested. For new setups: BASE (exactly `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`), FULL (all 26 roles), CUSTOM (exactly the user's selected roles), or RECOMMENDED (BASE plus justified specialists; default when unspecified).
 - **Future execution mode:** default to `implement`: autonomous discovery, prioritization, local implementation, and verification. Do not ask whether to start or require a supplied task. Use `review` only when the user explicitly requests it or an existing project-specific instruction deliberately requires it. Replace inherited boilerplate review defaults during updates; preserve intentional local restrictions. Commit/push/publish authority remains separate; honor it when already granted.
 - **Priorities/constraints:** pain points, browser/Android versions, forbidden paths, device availability, and release constraints not already documented.
-- **Logging & History:** establish dedicated per-agent log files (`<AGENT>_LOG.md`) in the repository root. If an existing monolithic log exists (e.g. `AGENTY_LOG.md`), archive it and initialize or split recent entries into the new per-agent logs so agents have immediate access to past lessons.
 - **Progress tracking:** optional `.agentards/` records, off by default. This differs from the required generated `AGENTARDS/config.json`.
 
 Do not add roles silently to BASE or CUSTOM. FULL retains all roles, with irrelevant ones reporting **Not applicable** without changes. For RECOMMENDED, justify additions: `hunter` for defects, `testing` for verification (including missing coverage), `api` for contracts/messaging, `database` for persistence, `mobile` for mobile behavior, `errors` for systemic error handling gaps, `typesafe` for weak typing, `refactorer` for structural debt, `architect` for layer violations, `linter` for style drift, `a11y` for accessibility requirements, `syncer` for keeping the AGENTARDS install current, and other specialists where supported. Search/SEO (`buddha`) is not automatically relevant to an extension or native app.
@@ -73,10 +72,10 @@ Embed the following autonomy contract in every standalone curated prompt (or its
 Every generated agent must stand alone and include:
 
 1. **Mission:** a clear specialty, relevant components/paths, exclusions, and autonomous implementation mode unless explicitly overridden, with enough context to start quickly.
-2. **Start Here Protocol (Log-First):**
-   - Read `./<AGENT>_LOG.md` first to review recent runs, avoid duplicated work, and pick up on noted follow-ups.
-   - Inspect actual code directly; do not rely on stale TODO files.
+2. **Start Here Protocol:**
+   - Inspect the codebase directly; do not rely on stale TODO files.
    - Scan the stack-specific anti-pattern checklist before selecting a candidate task.
+   - Check previous logs or commit notes if present to avoid duplicate work.
 3. **Stack-Tailored Anti-Pattern Checklist:** provide concrete checkable items derived from the detected template(s) (e.g. database N+1 queries, unindexed queries, missing statement batching, edge caching leaks, bundle budget thresholds, recomposition waste, memory leaks).
 4. **Local Map:** concrete paths, entry points, services, routes, configuration, and test files in this repository.
 5. **Industry Standards (verified via Context7):** cite official documentation and pinned versions for detected libraries and frameworks (e.g. React 19, React Router 7, Cloudflare Workers & D1, Compose BOM, Room 3, Vitest 5, FastAPI).
@@ -84,7 +83,7 @@ Every generated agent must stand alone and include:
 7. **Find:** discover and prioritize work without waiting for a task list; trace real user journeys or failures, record evidence and impact, and take one coherent task at a time. Search matches are leads. An evidence-backed no-op is valid.
 8. **Fix:** implement within the authorized mode and role, preserving behavior outside scope. In review mode, propose the patch without changing application files. Do not add dependencies or optimizations merely because examples use them.
 9. **Verify:** define acceptance criteria before editing; provide focused checks with correct directories, prerequisites, and exit status. Separate static, unit, build, browser/device, and release evidence.
-10. **Report & Log:** after completing actionable work, give changes and reasons, file references, exact checks/outcomes, remaining **UNKNOWN** items, and append a structured summary entry to `./<AGENT>_LOG.md`.
+10. **Report:** after completing actionable work, give changes and reasons, file references, exact checks/outcomes, remaining **UNKNOWN** items, and cross-domain handoffs.
 
 For a requested development feature, also generate `AGENTARDS/tasks/<descriptive-slug>.md` with: user-visible objective, owning selected agent, entry points, allowed changes, acceptance scenarios (success, failure, permissions/offline/lifecycle where relevant), verification, and exclusions. Reference its owner's prompt. Do not turn a maintenance specialist into an unrestricted product builder; split cross-domain work into explicit handoffs. If no selected role can own the task, ask for a selection change rather than silently adding one. Do not invent features when none were requested.
 
@@ -92,7 +91,12 @@ Resolve contradictions while composing: routine local work already authorized by
 
 ## 5. Update in place, or create missing output
 
-For an existing installation, patch the current files directly using this merge strategy:
+**CRITICAL SCOPE RULE:** All generated AGENTARDS files belong strictly within the `AGENTARDS/` directory.
+- **NEVER** create directories outside `AGENTARDS/` (such as `julesprompts/`, external prompt folders, or temporary directories).
+- **NEVER** duplicate prompt files at the repository root (e.g. do not create `BOLT.md`, `SENTINEL.md`, etc. at root).
+- All agent prompts live solely in `AGENTARDS/agents/<name>.md`.
+
+For an existing installation, patch the current files inside `AGENTARDS/` directly using this merge strategy:
 
 **What to update (upstream improvements applied):**
 - Anti-pattern checklists — inject or update concrete checkboxes tailored to the detected stack.
@@ -109,15 +113,8 @@ For an existing installation, patch the current files directly using this merge 
 - The `## Your Job` mission content — project-specific overrides to an agent's scope must survive updates.
 - Any project-specific commands, paths, or workflow notes added to an agent's Detect or Find steps.
 - Custom knowledge blocks added below the Safety section.
-- Progress records in `.agentards/` and run histories in `<AGENT>_LOG.md`.
-- The root `AGENTS.md` — never overwrite; only append missing agent system instructions if requested.
-
-**Redirecting older prompts:**
-When older or legacy prompts exist in the repository (e.g. `julesprompts/*.md`, flat uppercase files in `AGENTARDS/*.md`, or older root prompts), overwrite them with clean forwarding stubs:
-- Direct the agent to read and execute the canonical prompt in `AGENTARDS/agents/<name>.md` (or root `<NAME>.md`).
-- Direct run summaries to be appended to `./<NAME>_LOG.md`.
-- Reiterate that the canonical prompt governs autonomy, checklists, Context7 standards, and verification.
-This ensures existing automated or scheduled workflows continue seamlessly with the improved instructions.
+- Existing progress records in `.agentards/`.
+- The root `AGENTS.md` — never overwrite; only append missing agent system instructions if explicitly requested.
 
 **Convergence guarantee:** Applying the same update twice must produce no diff on the second run. Compare section content before writing; skip sections that already match upstream. If a section exists locally but differs from upstream, apply the upstream version only if the local version is a strict subset (i.e., upstream adds content without removing anything). If upstream removes content the local file has, preserve the local content and report the conflict.
 
@@ -125,19 +122,15 @@ This ensures existing automated or scheduled workflows continue seamlessly with 
 
 Do not regenerate the set from scratch, replace customized policies wholesale with upstream copies, create a parallel installation, or reset progress. Add only missing files justified by the requested scope. If nothing warrants improvement, report that result without rewriting files.
 
-The following layout is for a standard installation:
+The standard layout for any AGENTARDS installation is strictly self-contained:
 
 ```text
-├── AGENTS.md                    # repository operating guidelines & agent roster
-├── <AGENT>.md                   # root convenience agent prompts (e.g. BOLT.md, SENTINEL.md)
-├── <AGENT>_LOG.md               # dedicated run logs (e.g. BOLT_LOG.md, SENTINEL_LOG.md)
-├── AGENTARDS/
-│   ├── config.json              # selection, evidence, mode, provenance, commands
-│   ├── README.md                # index, usage, ownership, verification limits
-│   ├── agents/<name>.md         # standalone tailored canonical policies
-│   ├── templates/<type>/...     # copies of selected source templates
-│   └── tasks/<slug>.md          # only for requested development tasks
-└── julesprompts/<name>.md       # clean forwarding stubs pointing to canonical prompts
+AGENTARDS/
+├── config.json                  # selection, evidence, mode, provenance, commands
+├── README.md                    # index, usage, ownership, verification limits
+├── agents/<name>.md             # standalone tailored canonical policies
+├── templates/<type>/template.md # copies of selected source templates
+└── tasks/<slug>.md              # only for requested development tasks
 ```
 
 For new installations, `config.json` must be valid JSON with `schema_version` (1), `project` (including component roots), `capabilities` (name/status/evidence), `agents`, `templates`, `execution_mode` (`implement` by default), `permissions` (commit/push/publish), `progress_tracking`, `sources`, and `verification` (command/cwd/prerequisites). For existing installations, preserve their schema/configuration authority and update equivalent fields where supported. Use relative project paths, explicit unknowns, and no secrets or fabricated versions. Optional progress belongs in `.agentards/`, without a duplicate configuration authority.
@@ -148,10 +141,9 @@ Compare destinations before writing. Create missing files, skip identical ones, 
 
 ## 6. Validate and report
 
-- Confirm selected policies/templates exist, the index agrees with output, and configuration parses as JSON.
+- Confirm selected policies/templates exist strictly in `AGENTARDS/`, the index agrees with output, and configuration parses as JSON.
 - Check five stages, boundaries, safety, ownership, autonomous implementation default, and verification guidance in every curated policy. Confirm a bare invocation leads to discovery and completed work, not an approval loop or report-only result, unless explicitly overridden.
-- Confirm dedicated per-agent logs (`*_LOG.md`) exist or are initialized for all active agents.
-- Confirm older prompts (e.g. `julesprompts/`, legacy task files) cleanly forward to canonical prompts without conflicting instructions.
+- Confirm **NO** files or directories were created outside `AGENTARDS/` (no `julesprompts/`, no duplicate prompt files at root).
 - Check fences by delimiter type/length, local links, and unresolved placeholders. Explain unknown tooling rather than inventing commands.
 - Review the diff for unintended app changes, lost customization, secrets, unsupported assumptions, and conflicting authority rules.
 - Walk through relevant scenarios: bare agent invocation, explicit review-only override, existing flat/custom/composed prompts upgraded without recreation, unchanged rerun, empty project, explicit BASE/FULL/CUSTOM, unavailable sources, and missing browser/device tooling. Static review is not an execution test.
