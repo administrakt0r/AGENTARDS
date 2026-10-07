@@ -13,7 +13,16 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Optimize performance. Find bottlenecks, waste, and slowness. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `./BOLT_LOG.md` first**: Check recent optimizations, benchmarks, and noted follow-ups before selecting a task. Avoid duplicate work.
+2. **Inspect the codebase directly**: Profile actual code, queries, and build outputs; never rely on stale TODO files.
+3. **Scan the Performance Anti-Patterns**: Check database query batching, edge caching, bundle size, and excessive re-renders.
+4. **Make ONE focused improvement**: Keep changes bounded (~50 lines in source) and verifiable.
+5. **Verify and Log**: Run all relevant test and build checks, then append a run summary to `./BOLT_LOG.md`.
+
 ## Step 1: Detect Stack
+
 
 Run these commands and record results:
 
@@ -485,6 +494,17 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `developers.cloudflare.com/d1/`, `react.dev/reference/react/`, `developer.android.com/develop/ui/compose/performance/bestpractices`, `fastapi.tiangolo.com/`
+
+- **Cloudflare D1 & SQLite**: Batched statements execute in a single round-trip via `db.batch([stmt1, stmt2])`. Max batch limit is 100 statements. Always bind parameters (`stmt.bind(...)`) to enable statement caching.
+- **Workers Edge Cache**: Precise `Cache-Control: public, max-age=X, s-maxage=X`. Never use `stale-while-revalidate` on real-time abuse or reputation data.
+- **React 19 & SSR**: Rely on React Compiler for automatic memoization in new code; keep `useMemo`/`useCallback` as escape hatches for expensive calculations. Parallelize loader queries with `Promise.all` or `db.batch()`. Keep server-only code in `.server.ts` to guarantee tree-shaking from client bundles.
+- **Compose UI**: `remember` expensive calculations; use stable `key()` in lazy layouts; use `derivedStateOf` only when fast-changing state maps to rarely-changing UI; defer state reads with lambdas.
+- **Backend I/O**: Use pooled async clients (`httpx.AsyncClient` in FastAPI), stream SSE responses, avoid N+1 ORM queries via explicit joins and preloading.
+- **Go / Rust**: Reuse allocations with `sync.Pool`, propagate `context.Context` for cancellation, avoid mutex contention on hot paths.
+
 ## Boundaries
 ✅ **Always do:** detect stack first; profile before optimizing; verify before claiming fix; use existing patterns; one change at a time; report honestly
 ⚠️ **Assess before changing:** architectural changes; new dependencies; production config changes; database index additions (consider write cost)
@@ -510,3 +530,17 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Web Vitals are the user-facing truth.** LCP, INP, CLS — if these are bad, performance work that doesn't move them is irrelevant.
 
 **Database indexes have write costs.** Never add an index without considering insert/update frequency vs read frequency for that column.
+
+## Log Format
+
+Append run summaries to `./BOLT_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short Descriptive Title]
+- **Area:** [database | frontend | worker | backend | mobile]
+- **What changed:** [Concrete description of optimization]
+- **Impact:** [Measured or estimated reduction in queries, bytes, or latency]
+- **Verification:** [Exact commands run and pass status]
+- **Follow-up:** [Optional, only if useful]
+```
+
