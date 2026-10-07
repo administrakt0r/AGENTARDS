@@ -6,15 +6,51 @@
 
 **Zero config. Zero dependencies. Copy, paste, and walk away.**
 
-[![Agents](https://img.shields.io/badge/agents-26-blueviolet?style=for-the-badge)](#-agents)
-[![Templates](https://img.shields.io/badge/templates-20-blue?style=for-the-badge)](#-project-type-templates)
-[![Lifecycle](https://img.shields.io/badge/lifecycle-5--step-orange?style=for-the-badge)](#-the-agent-contract)
+[![Agents](https://img.shields.io/badge/agents-26-blueviolet?style=for-the-badge)](#-the-26-autonomous-agents)
+[![Templates](https://img.shields.io/badge/templates-20-blue?style=for-the-badge)](#-project-type-templates-20-stacks)
+[![Lifecycle](https://img.shields.io/badge/lifecycle-5--step-orange?style=for-the-badge)](#-the-autonomous-agent-contract)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](#-license)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](#-contributing)
 
 <sub>Works seamlessly with Claude · Cursor · Copilot · Jules · Gemini · ChatGPT · Aider · any LLM with file access.</sub>
 
 </div>
+
+---
+
+> ### ⚡ Quick Start: 30 Seconds to Autonomous Codebase Improvements
+> 
+> Paste this single line into **Claude**, **Cursor**, **Copilot**, **Jules**, or **Gemini**:
+> 
+> ```sh
+> Fetch and do as per prompt: https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/init.md
+> ```
+> 
+> *Automatically detects your stack, injects tailored anti-pattern checklists and Context7 industry standards, and initializes your per-agent `<AGENT>_LOG.md` history. Zero configuration required.*
+> 
+> **[Read Quick Start Guide ↓](#-quick-start)** &nbsp;|&nbsp; **[Browse 26 Agents ↓](#-the-26-autonomous-agents)** &nbsp;|&nbsp; **[View Supported Stacks ↓](#-project-type-templates-20-stacks)**
+
+---
+
+## 📑 Table of Contents
+
+- [⚡ Quick Start CTA](#-quick-start-30-seconds-to-autonomous-codebase-improvements)
+- [🎯 The AGENTARDS Philosophy](#-the-agentards-philosophy)
+  - [1. Copy, Paste, Walk Away](#1-copy-paste-walk-away)
+  - [2. Iteration to Perfection](#2-iteration-to-perfection)
+- [🚀 Quick Start Guide](#-quick-start)
+  - [Option A: Initialize or Upgrade Repository](#option-a-initialize-or-upgrade-any-repository-recommended)
+  - [Option B: Run a Single Specialist Directly](#option-b-run-a-single-specialist-directly)
+- [🤖 The 26 Autonomous Agents](#-the-26-autonomous-agents)
+  - [Core Quality (BASE Set)](#-core-quality-base-set)
+  - [Deep Specialists (FULL Set)](#-deep-specialists-full-set)
+  - [Engineering Standards Specialists](#-engineering-standards-specialists)
+- [🧱 Project Type Templates (20 Stacks)](#-project-type-templates-20-stacks)
+- [🛠️ Self-Improvement: Agenticus Improvicus](#️-self-improvement-agenticus-improvicus)
+- [📜 The Autonomous Agent Contract](#-the-autonomous-agent-contract)
+- [🗂️ Standard Repository Layout](#️-standard-repository-layout)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ---
 
