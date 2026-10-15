@@ -1,5 +1,13 @@
 # Backend API Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'pyproject.toml' -g 'go.mod' -g 'composer.json' -g 'pom.xml' -g 'build.gradle*' -g 'openapi.*' -g 'swagger.*' -g '!node_modules' -g '!vendor' -g '!dist'
+rg -n 'FastAPI|APIRouter|express\(|NestFactory|gin\.|echo\.|Route::|@RestController|Django' -g '!node_modules' -g '!vendor' -g '!dist'
+```
+
 ## Detected Technologies
 - **Framework:** [Express/NestJS/Fastify/Django/Flask/FastAPI/Laravel/Rails/Gin/Fiber/etc.]
 - **Language:** [JavaScript/TypeScript/Python/Go/PHP/Ruby/etc.]
@@ -119,3 +127,12 @@ src/
 - HTTP integration: supertest, httpx/TestClient, `httptest`, MockMvc
 - Contract/schema: OpenAPI validation, Pact
 - Smoke: `curl -f http://localhost:PORT/health`
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `spec.openapis.org/oas/latest.html`, `fastapi.tiangolo.com/`, `expressjs.com/en/guide/error-handling.html`, `docs.djangoproject.com/en/stable/`
+
+- Validate input at the boundary and return the error shape the project already uses.
+- Set timeouts on outbound calls. Bind SQL parameters.
+- List endpoints that can grow are paginated.
+- Health and readiness reflect dependencies the process cannot serve without.

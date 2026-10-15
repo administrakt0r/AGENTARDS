@@ -51,7 +51,7 @@ Sources: `reactrouter.com/en/main`, `tailwindcss.com/docs`, `vitest.dev/`
 | `custodian` | Unused route exports, obsolete UI primitives, dead styles in global CSS |
 | `testing` | Route loader/action unit tests, component render tests, hydration safety |
 | `sentinel` | Form CSRF/same-origin validation in actions, input sanitization, error boundaries |
-| `seo` | Meta function definitions, canonical links, JSON-LD structured data, sitemaps |
+| `buddha` | Meta function definitions, canonical links, JSON-LD structured data, sitemaps |
 
 ## Verification Commands
 

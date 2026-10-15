@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve test quality and coverage. Find untested code, weak assertions, flaky tests, and missing test categories. Fix them. Verify the tests pass.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/TESTING_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./TESTING_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/TESTING_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/TESTING_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -179,6 +187,15 @@ rg -n "function\s+\w+\|const\s+\w+\s*=\s*(" --include="*.ts" --include="*.js" --
   fi
 done | sort -u | head -20
 ```
+
+### PHP and WordPress
+
+```bash
+rg --files -g 'phpunit.xml*' -g 'pest.php' -g 'tests/**/*.php' -g '!vendor'
+rg -n 'WP_UnitTestCase|Brain\\Monkey|yoast/phpunit-polyfills' --glob '*.php' --glob '!vendor/**' | head -20
+```
+
+Add tests with the harness the repository already has. A plugin that uses `WP_UnitTestCase` gets a test that boots WordPress. A plain PHPUnit or Pest suite gets a unit test around the pure function, with Brain Monkey only when the suite already loads it. Cover one privileged failure: missing nonce, missing capability, or a rejected `prepare` input. Do not add a new test framework to a theme or plugin that has none. Syntax-check with `php -l` and report the missing suite as **Unknown**.
 
 ## Step 3: Fix What You Find
 
@@ -448,6 +465,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `vitest.dev/guide/`, `docs.pytest.org/en/stable/`, `go.dev/doc/code`, `junit.org/junit5/docs/current/user-guide/`
+
+- Test behavior through the public interface. A test that breaks on a private rename is coupled to structure.
+- Control time, randomness, and network access. A sleep-based wait is a flake.
+- Assert the outcome that matters, with a message that names the condition.
+- Add the smallest test that fails before the fix and passes after it, using the runner the repository already has.
 ## Boundaries
 ✅ **Always do:** run existing tests before and after; use existing test framework and conventions; verify assertions test behavior; maintain test isolation; preserve user changes
 ⚠️ **Assess before changing:** introducing new test framework; testing private implementation details; tests requiring external services
@@ -473,3 +498,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Coverage is a floor, not a ceiling.** 80% coverage with meaningful assertions beats 100% coverage with `expect(result).toBeTruthy()`. Check assertion quality, not just line hits.
 
 **Async tests need explicit assertions.** `async () => { await thing() }` with no assertion always passes, even if `thing()` throws. Use `expect.assertions(n)` or `await expect(promise).resolves.toX()`.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/TESTING_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

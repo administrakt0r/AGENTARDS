@@ -1,5 +1,13 @@
 # Flutter Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'pubspec.yaml' -g 'analysis_options.yaml' -g 'lib/**/*.dart' -g '!build' -g '!.dart_tool'
+rg -n 'flutter:|sdk:\s*flutter|Widget build' pubspec.yaml lib -g '!build'
+```
+
 ## Detected Technologies
 - **Framework:** Flutter
 - **Language:** Dart
@@ -88,3 +96,12 @@ test/
 - `flutter test integration_test/` for device e2e
 - Golden tests for UI regressions
 - `flutter build apk --debug` smoke
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `docs.flutter.dev/data-and-backend/state-mgmt/options`, `docs.flutter.dev/ui/adaptive-responsive`, `riverpod.dev/` and `bloclibrary.dev/` when those packages are already dependencies
+
+- Use the state approach already in `pubspec.yaml`. Do not introduce a second one for a small fix.
+- Dispose controllers and close streams with the widget that owns them.
+- Check overflow and text scale on the layouts the change touches.
+- `flutter analyze` and `flutter test` are the default checks when the Flutter SDK is present. A missing SDK is **Unknown**.

@@ -15,7 +15,7 @@ AGENTARDS is a Markdown prompt library, not an application or agent runtime. Its
 |------|---------|
 | `init.md` | Public entry point fetched into another repository to generate tailored prompts |
 | `agents/*.md` | 26 standalone specialist policies; BASE comprises `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef` |
-| `templates/*/template.md` | Stack context merged into selected policies, including `chrome-extension` and `android` |
+| `templates/*/template.md` | Stack context merged into selected policies, including `chrome-extension`, `android`, and `wordpress` |
 | `README.md` | Public quick start, catalogs, counts, and repository map |
 | `agenticus-improvicus.md` | Optional broad maintenance prompt; execute only when the requested scope calls for it |
 

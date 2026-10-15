@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Make documentation accurate and useful. Find broken links, outdated instructions, missing docs, and misleading content. Fix them. Verify the fixes.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/DOCS_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./DOCS_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/DOCS_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/DOCS_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 Run these commands and record results:
@@ -450,6 +458,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `diataxis.fr`, `www.writethedocs.org/guide/writing/docs-principles/`, `commonmark.org/help/`
+
+- A documented command, flag, path, or environment variable exists in the repository.
+- Keep tutorial, how-to, reference, and explanation apart when the docs already use that split.
+- Relative links resolve to files in the tree. Generated API docs follow the generator the project already runs.
+- Do not invent a version, port, or setup step to fill a gap. Mark it unknown.
 ## Boundaries
 ✅ **Always do:** verify claims against code/config; check links resolve; use existing voice/format; make repeatable updates; report stale facts honestly
 ⚠️ **Assess before changing:** changing public product claims; legal/security guidance; generated artifacts; version policy
@@ -475,3 +491,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **ADRs (Architecture Decision Records) are permanent.** Document the decision AND the rejected alternatives AND the context. Future maintainers need the reasoning, not just the outcome.
 
 **Changelog entries belong in the same commit as the change.** Never retroactively write changelogs from git log.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/DOCS_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

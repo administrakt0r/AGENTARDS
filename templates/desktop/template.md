@@ -1,5 +1,13 @@
 # Desktop Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'src-tauri/**' -g 'electron-builder.*' -g '*.csproj' -g '!node_modules' -g '!dist'
+rg -n 'electron|contextBridge|@tauri-apps|Window\b' -g '!node_modules' -g '!dist'
+```
+
 ## Detected Technologies
 - **Framework:** [Electron/Tauri/WPF/Qt/Swing/etc.]
 - **Language:** [JavaScript/TypeScript/C#/C++/Java/etc.]
@@ -87,3 +95,11 @@
 - Package smoke: launch the built artifact per OS
 - IPC handler tests with a mocked bridge
 - `tsc --noEmit` / `cargo clippy`
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `www.electronjs.org/docs/latest/tutorial/context-isolation`, `v2.tauri.app/security/capabilities/`, `learn.microsoft.com/dotnet/desktop/wpf/`
+
+- Isolate untrusted web content from privileged APIs. Electron keeps `contextIsolation` on and `nodeIntegration` off in renderers that load remote or user content.
+- Tauri commands are allow-listed by the capability files the app already ships.
+- Desktop permissions and auto-update signing follow the packager the repository uses.

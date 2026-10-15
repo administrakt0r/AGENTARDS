@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve data layer quality. Find N+1 queries, missing indexes, migration issues, and connection problems. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/DATABASE_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./DATABASE_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/DATABASE_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/DATABASE_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -177,6 +185,25 @@ rg -n "\.findMany\(|\.findAll\(|\.find\(" --include="*.ts" --include="*.js" --in
 done | head -20
 ```
 
+### PHP, WordPress, and MySQL
+
+```bash
+# WordPress or generic PHP SQL built by concatenation
+rg -n '\$wpdb->(query|get_results|get_row|get_var|get_col)\(\s*"' --glob '*.php' --glob '!vendor/**' --glob '!wp-includes/**' --glob '!wp-admin/**'
+rg -n '\$wpdb->(query|get_results|get_row|get_var)\([^)]*\$' --glob '*.php' --glob '!vendor/**' --glob '!wp-includes/**' | head -30
+
+# Unbounded WordPress queries and the loop helper that replaces the main query
+rg -n "posts_per_page['\"]?\s*=>\s*-1|query_posts\s*\(" --glob '*.php' --glob '!vendor/**' --glob '!wp-includes/**'
+
+# Custom tables created without dbDelta or without a prefix
+rg -n 'CREATE TABLE' --glob '*.php' --glob '!vendor/**' --glob '!wp-includes/**'
+
+# MySQL schema files: columns filtered without a following KEY
+rg -n 'CREATE TABLE' --glob '*.sql' --glob '!vendor/**' | head -20
+```
+
+A `$wpdb` call whose SQL string contains a PHP variable is a lead. Confirm it is not already passed through `prepare`. `get_post_meta` inside a normal `WP_Query` loop is usually served from the primed meta cache. A new `$wpdb` or `get_posts` call per row is the N+1.
+
 ## Step 3: Fix What You Find
 
 ### Fix N+1 Queries
@@ -259,6 +286,54 @@ async function queryUsers(): Promise<User[]> {
   }
 }
 ```
+
+### Fix WordPress `$wpdb` and `WP_Query`
+
+```php
+// BEFORE — values are interpolated. prepare never sees them.
+$rows = $wpdb->get_results(
+    "SELECT id, title FROM {$wpdb->prefix}items WHERE user_id = $user_id AND status = '$status'"
+);
+
+// AFTER — %d and %s are bound. The table prefix stays in the SQL string
+// because it is not user input. On WordPress 6.2+ use %i for a dynamic identifier.
+$rows = $wpdb->get_results(
+    $wpdb->prepare(
+        "SELECT id, title FROM {$wpdb->prefix}items WHERE user_id = %d AND status = %s",
+        $user_id,
+        $status
+    )
+);
+```
+
+```php
+// BEFORE — loads every published post and then queries again per post.
+$posts = get_posts( array( 'post_type' => 'book', 'posts_per_page' => -1 ) );
+foreach ( $posts as $post ) {
+    $related = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}book_meta WHERE post_id = " . $post->ID );
+}
+
+// AFTER — one query, only the columns you need, no found-row count.
+$ids = get_posts( array(
+    'post_type'              => 'book',
+    'posts_per_page'         => 50,
+    'fields'                 => 'ids',
+    'no_found_rows'          => true,
+    'update_post_meta_cache' => false,
+    'update_post_term_cache' => false,
+) );
+if ( $ids ) {
+    $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+    $related = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT post_id, meta_key, meta_value FROM {$wpdb->prefix}book_meta WHERE post_id IN ($placeholders)",
+            $ids
+        )
+    );
+}
+```
+
+Custom tables are created with `dbDelta`, `$wpdb->prefix`, and `$wpdb->get_charset_collate()`. `dbDelta` wants two spaces in `PRIMARY KEY  (id)`. Store a schema version and run the upgrade when that version changes, not on every request. WooCommerce orders under High-Performance Order Storage are read with `wc_get_orders`, not with a `post_type => shop_order` query.
 
 ### Fix External Call in Transaction
 
@@ -397,6 +472,15 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `postgresql.org/docs/current/indexes.html`, `sqlite.org/queryplanner.html`, `developers.cloudflare.com/d1/`, `dev.mysql.com/doc/refman/8.4/en/optimization.html`, `developer.wordpress.org/reference/classes/wpdb/`
+
+- Read the query plan before adding an index. An index that is never chosen is write cost.
+- Bind parameters. String-built SQL is an injection and a plan-cache miss.
+- Migrations match the tool the repository uses. Record whether they are reversible. WordPress custom tables use `dbDelta` plus a stored schema version.
+- Cloudflare D1 `db.batch()` accepts at most 100 statements. Chunk larger writes.
+- WordPress list queries set an explicit limit. `posts_per_page => -1` and `SELECT *` on `wp_postmeta` are the usual full scans. `LIKE '%term'` cannot use a normal btree index.
 ## Boundaries
 ✅ **Always do:** verify against actual schema; check migration reversibility; test with representative data; use existing ORM patterns; verify connection handling
 ⚠️ **Assess before changing:** schema changes; data migrations; connection pool config; transaction boundary changes; production database operations
@@ -422,3 +506,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **UUIDs vs serial PKs is a real tradeoff.** UUIDs prevent enumeration attacks and allow distributed ID generation but fragment B-tree indexes. Use UUID v7 (time-ordered) when you need UUIDs.
 
 **Never trust ORM query counts.** Add query logging in development. Verify actual SQL emitted matches expectations. ORMs routinely generate surprising queries.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/DATABASE_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

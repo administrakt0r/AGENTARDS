@@ -1,5 +1,13 @@
 # Go Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'go.mod' -g 'go.sum' -g '**/*.go' -g '!vendor'
+rg -n 'package main|net/http|gin\.|echo\.|fiber\.' -g '*.go' -g '!vendor'
+```
+
 ## Detected Technologies
 - **Framework:** [Gin/Fiber/Echo/Chi/standard lib/etc.]
 - **Package Manager:** [Go modules (go.mod)]
@@ -87,3 +95,12 @@
 - `httptest` for handlers
 - `go vet ./...` and `golangci-lint run`
 - Benchmarks: `go test -bench=. -benchmem`
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `go.dev/doc/modules/layout`, `go.dev/doc/database/cancel-ops`, `go.dev/doc/effective_go`
+
+- Pass `context.Context` through calls that block or leave the process. Honor cancellation.
+- Wrap errors with `%w` when the caller uses `errors.Is` or `errors.As`.
+- Run `gofmt` on touched files. `go test ./...` is the default suite when the module is at the working directory you detected.
+- Keep `internal/` private. Do not export a type only to satisfy a test in another module.

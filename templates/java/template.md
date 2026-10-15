@@ -1,5 +1,13 @@
 # Java Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'pom.xml' -g 'build.gradle*' -g 'settings.gradle*' -g 'src/main/**/*.java' -g '!build' -g '!target'
+rg -n 'spring-boot|quarkus|@SpringBootApplication' -g 'pom.xml' -g '*.gradle*' -g '*.java' -g '!target' -g '!build'
+```
+
 ## Detected Technologies
 - **Framework:** [Spring Boot/Quarkus/Micronaut/etc.]
 - **Package Manager:** [Maven/Gradle]
@@ -90,3 +98,12 @@ src/
 - Spring Boot `@SpringBootTest` / MockMvc
 - Testcontainers for DB/integration tests
 - ArchUnit for dependency rules
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `docs.spring.io/spring-boot/reference/`, `quarkus.io/guides/`, `maven.apache.org/guides/`
+
+- Use the build file that is present, Maven or Gradle, and the wrapper if the repo has one.
+- Validate request bodies with the validator the framework already enables.
+- Close JDBC and HTTP clients with the pool or try-with-resources the module uses.
+- Tests run through the build tool. A missing JDK is **Unknown**.

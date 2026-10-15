@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve mobile quality. Find crashes, performance issues, battery drain, offline gaps, deep link gaps, and UX problems. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/MOBILE_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./MOBILE_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/MOBILE_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/MOBILE_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -500,6 +508,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `developer.android.com/develop/ui/compose/performance`, `developer.android.com/guide/background`, `developer.apple.com/documentation/uikit/about-the-app-launch-sequence`
+
+- Keep blocking I/O and heavy decode off the main thread. Scope collectors to the lifecycle that owns them.
+- Persist state that must survive process death. A rotation check does not prove that.
+- Permission flows include denial and revocation. Background work uses the platform scheduler the app already chose.
+- Treat generated native projects from React Native, Expo, or Flutter as generated until the repo says otherwise.
 ## Boundaries
 ✅ **Always do:** verify platform-specific behavior; test on representative configurations; use existing platform patterns; verify battery and performance impact; check store compliance
 ⚠️ **Assess before changing:** platform-specific changes; store submission changes; deep linking changes; push notification changes; native module additions
@@ -525,3 +541,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Lifecycle is not the same as process lifecycle.** An Activity/Fragment can be destroyed and recreated without the process dying. Save UI state in `ViewModel` and restore it from `savedInstanceState`.
 
 **App size matters in markets with slow networks.** Enable ProGuard/R8 minification. Use App Bundles (Android) or bitcode (iOS) for per-device optimization.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/MOBILE_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

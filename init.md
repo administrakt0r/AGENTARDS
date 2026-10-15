@@ -31,6 +31,7 @@ Classify relevant capabilities as **Detected / Not detected / Unknown**, with a 
 | Cloudflare Workers (`wrangler.json*`, `wrangler.toml`, `workers/`), Cloudflare D1 SQLite | `cloudflare-workers`; add `backend-api` for general API design |
 | React Native/Expo or Flutter with an Android target | `react-native` or `flutter`, plus `android` for the native layer; check whether native files are generated |
 | FastAPI, Django, Flask, Express, NestJS backend services | `backend-api` and language template (`python`, `go`, etc.) |
+| WordPress theme, plugin, or site (`Theme Name:` / `Plugin Name:` headers, `wp-content/themes`, `wp-content/plugins`) | `wordpress` and `php`. A theme-only or plugin-only checkout is still WordPress |
 | Other project types | Closest template(s) supported by evidence |
 
 A web app manifest is not an extension manifest. Gradle alone does not prove Android. Monorepos may need separate templates and command directories per component.
@@ -45,7 +46,7 @@ Use the request and inspection to resolve these choices; ask material unanswered
 - **Priorities/constraints:** pain points, browser/Android versions, forbidden paths, device availability, and release constraints not already documented.
 - **Progress tracking:** optional `.agentards/` records, off by default. This differs from the required generated `AGENTARDS/config.json`.
 
-Do not add roles silently to BASE or CUSTOM. FULL retains all roles, with irrelevant ones reporting **Not applicable** without changes. For RECOMMENDED, justify additions: `hunter` for defects, `testing` for verification (including missing coverage), `api` for contracts/messaging, `database` for persistence, `mobile` for mobile behavior, `errors` for systemic error handling gaps, `typesafe` for weak typing, `refactorer` for structural debt, `architect` for layer violations, `linter` for style drift, `a11y` for accessibility requirements, `syncer` for keeping the AGENTARDS install current, and other specialists where supported. Search/SEO (`buddha`) is not automatically relevant to an extension or native app.
+Do not add roles silently to BASE or CUSTOM. FULL retains all roles, with irrelevant ones reporting **Not applicable** without changes. For RECOMMENDED, justify additions: `hunter` for defects, `testing` for verification (including missing coverage), `api` for contracts/messaging, `database` for persistence, `mobile` for mobile behavior, `errors` for systemic error handling gaps, `typesafe` for weak typing, `refactorer` for structural debt, `architect` for layer violations, `linter` for style drift, `a11y` for accessibility requirements, `syncer` for keeping the AGENTARDS install current, and other specialists where supported. Search/SEO (`buddha`) is not automatically relevant to an extension or native app. A WordPress theme or plugin justifies `database` because it reads and writes through `$wpdb` or `WP_Query`. Add `api` when `register_rest_route` is present, and `testing` when privileged actions or queries have no matching PHPUnit or Pest coverage.
 
 ## 3. Load selected sources
 
@@ -57,7 +58,7 @@ Prefer a user-provided local AGENTARDS checkout or revision. Otherwise fetch:
 
 Available agents: `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`, `hunter`, `testing`, `buddha`, `database`, `api`, `monitoring`, `cicd`, `docker`, `kubernetes`, `terraform`, `mobile`, `aiml`, `todoist`, `refactorer`, `architect`, `linter`, `typesafe`, `errors`, `a11y`, `syncer`.
 
-Available templates: `cloudflare-workers`, `react-router`, `web-frontend`, `backend-api`, `fullstack`, `mobile`, `android`, `chrome-extension`, `desktop`, `cli`, `devops`, `python`, `php`, `go`, `rust`, `java`, `react-native`, `flutter`, `electron`, `tauri`.
+Available templates: `cloudflare-workers`, `react-router`, `web-frontend`, `backend-api`, `fullstack`, `mobile`, `android`, `chrome-extension`, `desktop`, `cli`, `devops`, `python`, `php`, `wordpress`, `go`, `rust`, `java`, `react-native`, `flutter`, `electron`, `tauri`.
 
 Load only selected agents/templates. Use a consistent revision where possible; record actual source provenance, without claiming a pinned commit for mutable `main`. Confirm responses contain the requested Markdown, not errors or HTML. If a required source is unavailable, use a verified local copy or report the missing source and leave dependent files untouched. Never invent fetched content or silently generate an incomplete set.
 
@@ -73,9 +74,10 @@ Every generated agent must stand alone and include:
 
 1. **Mission:** a clear specialty, relevant components/paths, exclusions, and autonomous implementation mode unless explicitly overridden, with enough context to start quickly.
 2. **Start Here Protocol:**
+   - Read `AGENTARDS/logs/<AGENT>_LOG.md` before choosing work, and append the run summary there after verification.
+   - If that file is missing and `./<AGENT>_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/` and leave the root file in place.
    - Inspect the codebase directly; do not rely on stale TODO files.
    - Scan the stack-specific anti-pattern checklist before selecting a candidate task.
-   - Check previous logs or commit notes if present to avoid duplicate work.
 3. **Stack-Tailored Anti-Pattern Checklist:** provide concrete checkable items derived from the detected template(s) (e.g. database N+1 queries, unindexed queries, missing statement batching, edge caching leaks, bundle budget thresholds, recomposition waste, memory leaks).
 4. **Local Map:** concrete paths, entry points, services, routes, configuration, and test files in this repository.
 5. **Industry Standards (verified via Context7):** cite official documentation and pinned versions for detected libraries and frameworks (e.g. React 19, React Router 7, Cloudflare Workers & D1, Compose BOM, Room 3, Vitest 5, FastAPI).
@@ -98,27 +100,33 @@ Resolve contradictions while composing: routine local work already authorized by
 
 For an existing installation, patch the current files inside `AGENTARDS/` directly using this merge strategy:
 
-**What to update (upstream improvements applied):**
-- Anti-pattern checklists — inject or update concrete checkboxes tailored to the detected stack.
-- Industry Standards blocks — add or refresh `## Industry Standards (verified 2026-10 via Context7)` blocks citing current documentation.
-- Detect step commands — replace vague `scan for X` prose with concrete `rg`/`find` commands matching the upstream version.
-- Fix examples — replace toy snippets with production-grade multi-step before/after examples.
-- Verify step — expand to include typecheck, lint, tests, budgets, and build with exit-code checking.
-- Cross-Domain Handoff table — add any rows present in upstream but missing locally.
-- Senior Engineering Standards section — add if absent; never overwrite if present with project-specific content.
-- `config.json` — update `schema_version`, `agents` list, and `sources` provenance without overwriting project-level `capabilities` or `permissions`.
+`init.md` is the only merge authority. `syncer` executes this section and does not keep a second update policy. A section runs from a `##` heading through the line before the next `##` heading. A `###` heading is a subsection and merges the same way one level down. Compare trimmed lines so a whitespace-only difference does not rewrite a file.
 
-**What to preserve unconditionally:**
-- Project-specific business boundaries, security controls, privacy rules, and policies (e.g. English-only/LTR UI, authentication requirements, specific API keys or salt rules).
-- The `## Your Job` mission content — project-specific overrides to an agent's scope must survive updates.
-- Any project-specific commands, paths, or workflow notes added to an agent's Detect or Find steps.
-- Custom knowledge blocks added below the Safety section.
-- Existing progress records in `.agentards/`.
-- The root `AGENTS.md` — never overwrite; only append missing agent system instructions if explicitly requested.
+**Protected regions.** Never delete a local line from `## Your Job`, `## Boundaries`, `## Safety`, any heading upstream does not have, custom notes under Safety, `config.json` `capabilities` and `permissions`, the target repository's root `AGENTS.md` (never overwrite it; append agent instructions only when the user explicitly asks), or `.agentards/` progress. Upstream lines that are absent may be appended inside a protected section. Local lines stay, in their existing order.
 
-**Convergence guarantee:** Applying the same update twice must produce no diff on the second run. Compare section content before writing; skip sections that already match upstream. If a section exists locally but differs from upstream, apply the upstream version only if the local version is a strict subset (i.e., upstream adds content without removing anything). If upstream removes content the local file has, preserve the local content and report the conflict.
+**Shared sections.**
+- If the normalized section already matches upstream, skip it.
+- If every local line already appears in upstream and upstream has additional lines, write the upstream section.
+- Otherwise keep every local line and append upstream lines that are not already present, under the matching `###` when one exists, otherwise at the end of the section.
+- When the same subject carries two different requirements, keep the local line and report a conflict. Do not auto-resolve it.
 
-**Adding new agents:** When upstream adds an agent not present locally, add it to `AGENTARDS/agents/` and to `config.json` agents list only if the project's set is FULL. For BASE/CUSTOM/RECOMMENDED sets, report the new agent as available but do not install it without a selection change request.
+**What to add when missing:**
+- Start Here / log-first protocol pointing at `AGENTARDS/logs/<AGENT>_LOG.md`, including the one-time root-log copy rule above.
+- `## Industry Standards (verified 2026-10 via Context7)` blocks citing current documentation. Pin versions only from evidence in the target project or the source prompt.
+- Concrete `rg` / `find` detect commands for the detected stack, in place of vague "scan for X" prose.
+- Production-grade fix examples where the local section has none and upstream has them.
+- Verify checks for typecheck, lint, tests, budgets, and build, with exit status, using commands that exist in the project.
+- Cross-Domain Handoff rows that upstream has and the local table lacks. Add rows. Do not replace the table.
+- `## Senior Engineering Standards` when that whole section is absent. When it exists, append missing lines only.
+- `config.json` provenance: `schema_version`, `sources`, and, for a FULL set, names of agents actually installed. Leave `capabilities`, `permissions`, `project`, `verification`, and `execution_mode` in place.
+
+**Logs.** Generated prompts read and append `AGENTARDS/logs/<AGENT>_LOG.md`. If that file is missing and `./<AGENT>_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/` and leave the root file in place.
+
+**Adding new agents:** When upstream adds an agent not present locally, add it to `AGENTARDS/agents/` and to the `config.json` agents list only if the project's set is FULL. For BASE, CUSTOM, and RECOMMENDED sets, report the new agent as available and do not install it.
+
+**Failure.** If a fetch is empty, not Markdown, or otherwise unusable, leave the dependent file untouched and name the missing source. If `config.json` exists and is not valid JSON, report that and do not write it. If it is absent, create the standard schema with explicit unknowns for facts you did not observe.
+
+**Convergence guarantee:** Applying the same update twice must produce no diff on the second run. Skip identical files. Append each new upstream line once. Never delete a local line to make the files match.
 
 Do not regenerate the set from scratch, replace customized policies wholesale with upstream copies, create a parallel installation, or reset progress. Add only missing files justified by the requested scope. If nothing warrants improvement, report that result without rewriting files.
 
@@ -129,6 +137,7 @@ AGENTARDS/
 ├── config.json                  # selection, evidence, mode, provenance, commands
 ├── README.md                    # index, usage, ownership, verification limits
 ├── agents/<name>.md             # standalone tailored canonical policies
+├── logs/<AGENT>_LOG.md          # run memory; created by agent runs, not by setup
 ├── templates/<type>/template.md # copies of selected source templates
 └── tasks/<slug>.md              # only for requested development tasks
 ```
@@ -146,7 +155,7 @@ Compare destinations before writing. Create missing files, skip identical ones, 
 - Confirm **NO** files or directories were created outside `AGENTARDS/` (no `julesprompts/`, no duplicate prompt files at root).
 - Check fences by delimiter type/length, local links, and unresolved placeholders. Explain unknown tooling rather than inventing commands.
 - Review the diff for unintended app changes, lost customization, secrets, unsupported assumptions, and conflicting authority rules.
-- Walk through relevant scenarios: bare agent invocation, explicit review-only override, existing flat/custom/composed prompts upgraded without recreation, unchanged rerun, empty project, explicit BASE/FULL/CUSTOM, unavailable sources, and missing browser/device tooling. Static review is not an execution test.
+- Walk through relevant scenarios on paper: bare agent invocation, explicit review-only override, existing flat/custom/composed prompts upgraded without recreation, unchanged rerun, additive merge that keeps a local-only line and appends an upstream-only line once, survival of `## Your Job`, Boundaries, Safety, capabilities, and permissions, FULL installing a missing agent while BASE/CUSTOM/RECOMMENDED only report it, a failed fetch leaving the destination untouched, a root `./BOLT_LOG.md` copied into `AGENTARDS/logs/BOLT_LOG.md` with the root file left in place, empty project, explicit BASE/FULL/CUSTOM, unavailable sources, and missing browser/device tooling. Static review is not an execution test.
 - Report created/updated/preserved files, selections and reasons, actual checks, conflicts, and unknowns. Give one concrete invocation for the generated set.
 
 Stop after generation and verification unless the user also requested execution of a generated task.

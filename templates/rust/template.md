@@ -1,5 +1,13 @@
 # Rust Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'Cargo.toml' -g 'Cargo.lock' -g 'src/**/*.rs' -g '!target'
+rg -n 'actix|axum|rocket|tokio' Cargo.toml -g '*.rs' -g '!target'
+```
+
 ## Detected Technologies
 - **Framework:** [Actix/Axum/Rocket/Tauri/etc.]
 - **Package Manager:** [Cargo]
@@ -85,3 +93,12 @@
 - Property tests: `proptest` / `quickcheck`
 - `cargo clippy -- -D warnings`, `cargo fmt --check`
 - Doc tests (`cargo test --doc`)
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `doc.rust-lang.org/book/`, `doc.rust-lang.org/cargo/`, `docs.rs/tokio/latest/tokio/`
+
+- Propagate `Result`. `unwrap()` on a path that can fail in production is a lead, not an automatic rewrite of every call.
+- Format with `rustfmt` and lint with `clippy` when they are available. `cargo test` is the default suite.
+- Async work uses the runtime the crate already selects. Do not block that runtime.
+- Lockfile changes belong with `Cargo.toml` changes.

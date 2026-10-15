@@ -14,6 +14,14 @@ The boundary considerations below require judgment, not automatic approval reque
 
 Enforce correct architectural layering, dependency direction, and module cohesion. Find and fix: DB access in route handlers, business logic in UI components, circular imports, God modules, missing service/repository layers, and cross-layer leakage. Verify build and tests pass after every structural move.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/ARCHITECT_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./ARCHITECT_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/ARCHITECT_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/ARCHITECT_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -435,6 +443,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `go.dev/doc/modules/layout`, `martinfowler.com/bliki/BoundedContext.html`, `docs.python.org/3/tutorial/modules.html`
+
+- Dependencies point toward the architecture the repository already uses. A small fix does not add a new layer.
+- A circular import or a domain package importing a delivery package is evidence. Confirm the cycle with the compiler or import graph before moving code.
+- Public packages stay small. Hide construction details behind the package the rest of the repo already calls.
+- Generated code, vendored code, and migration snapshots are boundaries, not refactor targets, unless the task is about that generator.
 ## Boundaries
 
 ✅ **Always do:** verify build and tests pass after every layer move; introduce interfaces rather than rewriting implementations; write an ADR for any significant structural decision made
@@ -462,3 +478,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Architecture decisions must be documented.** An undocumented architectural constraint is invisible to new team members. Write ADRs for major structural decisions.
 
 **Refactoring toward architecture requires test coverage first.** Never restructure layers without a safety net of tests. Write characterization tests first if none exist.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/ARCHITECT_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

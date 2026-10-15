@@ -61,3 +61,12 @@ Examples for a confirmed `app` module and `debug` variant are `./gradlew :app:te
 - **Release:** when requested, inspect actual release variant, shrinker behavior, and packaging. Signing, Play submission, and policy compliance require separate evidence and authority. Consult current official Android documentation for version-sensitive platform/Play requirements.
 
 Report missing SDK/JDK/device/tooling as **UNKNOWN**, identifying the prerequisite. Host, emulator, physical-device, signed-artifact, and Play-acceptance results are separate. Do not claim performance improvements without comparable measurements.
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `developer.android.com/studio/build`, `developer.android.com/develop/ui/compose`, `developer.android.com/topic/libraries/architecture/viewmodel`
+
+- Resolve modules, variants, and SDK levels from Gradle files before choosing a task. JVM Gradle alone is not Android evidence.
+- Scope coroutines and flows to the lifecycle that owns them. Blocking work stays off the main thread.
+- Permissions include denial and revocation. Exported components and intent extras are untrusted input.
+- Host unit tests, lint, and device or emulator runs are separate evidence. Report a missing SDK or device as **Unknown**.

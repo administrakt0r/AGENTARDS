@@ -7,7 +7,7 @@
 **Zero config. Zero dependencies. Copy, paste, and walk away.**
 
 [![Agents](https://img.shields.io/badge/agents-26-blueviolet?style=for-the-badge)](#-the-26-autonomous-agents)
-[![Templates](https://img.shields.io/badge/templates-20-blue?style=for-the-badge)](#-project-type-templates-20-stacks)
+[![Templates](https://img.shields.io/badge/templates-21-blue?style=for-the-badge)](#-project-type-templates-21-stacks)
 [![Lifecycle](https://img.shields.io/badge/lifecycle-5--step-orange?style=for-the-badge)](#-the-autonomous-agent-contract)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](#-license)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](#-contributing)
@@ -28,7 +28,7 @@
 > 
 > *Automatically detects your stack, tailors anti-pattern checklists and Context7 industry standards to your project, and installs clean autonomous agents inside `AGENTARDS/`. Zero configuration required.*
 > 
-> **[Read Quick Start Guide ↓](#-quick-start)** &nbsp;|&nbsp; **[Browse 26 Agents ↓](#-the-26-autonomous-agents)** &nbsp;|&nbsp; **[View Supported Stacks ↓](#-project-type-templates-20-stacks)**
+> **[Read Quick Start Guide ↓](#-quick-start)** &nbsp;|&nbsp; **[Browse 26 Agents ↓](#-the-26-autonomous-agents)** &nbsp;|&nbsp; **[View Supported Stacks ↓](#-project-type-templates-21-stacks)**
 
 ---
 
@@ -45,7 +45,7 @@
   - [Core Quality (BASE Set)](#-core-quality-base-set)
   - [Deep Specialists (FULL Set)](#-deep-specialists-full-set)
   - [Engineering Standards Specialists](#-engineering-standards-specialists)
-- [🧱 Project Type Templates (20 Stacks)](#-project-type-templates-20-stacks)
+- [🧱 Project Type Templates (21 Stacks)](#-project-type-templates-21-stacks)
 - [🛠️ Self-Improvement: Agenticus Improvicus](#️-self-improvement-agenticus-improvicus)
 - [📜 The Autonomous Agent Contract](#-the-autonomous-agent-contract)
 - [🗂️ Standard Repository Layout](#️-standard-repository-layout)
@@ -70,7 +70,7 @@ You do not give an AGENTARDS agent a task list. You drop or paste the prompt int
 ### 2. Iteration to Perfection
 Code quality isn't built in a single massive refactor — it is achieved through relentless, bounded iterations.
 - **One Bounded Win Per Run**: Each agent run selects exactly one evidence-backed problem, completes it, and stops.
-- **Persistent Memory via Dedicated Logs**: Every agent reads its matching `./<AGENT>_LOG.md` first, learns from past runs, avoids duplicated work, and appends its latest benchmark or findings.
+- **Persistent Memory via Dedicated Logs**: Every agent reads `AGENTARDS/logs/<AGENT>_LOG.md` first, learns from past runs, avoids duplicated work, and appends its latest findings. If that file is missing and an older `./<AGENT>_LOG.md` exists at the repository root, the agent copies it into `AGENTARDS/logs/` once and leaves the root file in place.
 - **Iterate to Perfection**: Run an agent once for a quick surgical win. Run it repeatedly (manually or in automated CI/scheduled runs) to systematically elevate your codebase toward production perfection.
 
 ```mermaid
@@ -78,7 +78,7 @@ flowchart LR
     A["🔎 DETECT<br/><sub>inspect stack</sub>"] --> B["🔍 FIND<br/><sub>locate problem</sub>"]
     B --> C["🔧 FIX<br/><sub>make bounded change</sub>"]
     C --> D["✅ VERIFY<br/><sub>run typecheck & tests</sub>"]
-    D --> E["📋 REPORT & LOG<br/><sub>append to &lt;AGENT&gt;_LOG.md</sub>"]
+    D --> E["📋 REPORT & LOG<br/><sub>append to AGENTARDS/logs</sub>"]
 ```
 
 ---
@@ -122,7 +122,6 @@ The essential foundation for any codebase:
 | `bolt` | ⚡ | Performance & Efficiency | Eliminates N+1 queries, optimizes statement batching, trims bundles, removes blocking I/O |
 | `sentinel` | 🛡️ | Security & Privacy | Hardens bot defense, eliminates injection vectors, hashes IPs, audits auth contracts |
 | `custodian` | 🧹 | Code Cleanup & Debloating | Prunes dead code, trims unused exports, cleans unused assets, removes AI cruft |
-| `testing` | 🧪 | Test Quality & Coverage | Fills gaps in unit tests, error handling paths, edge cases, and deterministic assertions |
 | `picasso` | 🎨 | UI/UX & Polish | Refines responsive layout, fixes touch targets, resolves WCAG accessibility issues |
 | `docs` | 📚 | Documentation Sync | Reconciles engineering docs, runbooks, and API specs with real implemented code |
 | `shtef` | 😎 | Dependencies & Upgrades | Audits vulnerability reports, updates minor/patch dependencies safely |
@@ -132,6 +131,7 @@ The essential foundation for any codebase:
 | Agent | Emoji | Specialty | Scope |
 |:------|:-----:|:----------|:------|
 | `hunter` | 🔍 | Bug Hunting | Reproduces and fixes obscure edge-case bugs and race conditions |
+| `testing` | 🧪 | Test Quality & Coverage | Fills gaps in unit tests, error handling paths, edge cases, and deterministic assertions |
 | `database` | 🗄️ | Data Systems | Indexes, query plans, SQLite/Postgres/MySQL migrations, batch limits |
 | `buddha` | 🧘 | Search & Discoverability | Meta tags, canonical links, sitemaps, JSON-LD structured data, robots |
 | `api` | 🔌 | Interfaces & Contracts | Endpoint validation, error envelopes, OpenAPI drift, CORS headers |
@@ -158,7 +158,7 @@ The essential foundation for any codebase:
 
 ---
 
-## 🧱 Project Type Templates (20 Stacks)
+## 🧱 Project Type Templates (21 Stacks)
 
 Templates in [`templates/`](templates/) add stack-specific anti-pattern checklists, diagnostic commands, and Context7-verified industry standards:
 
@@ -176,7 +176,8 @@ Templates in [`templates/`](templates/) add stack-specific anti-pattern checklis
 | `cli` | Commander, Click, Cobra, clap |
 | `devops` | CI/CD, containerization, Infrastructure as Code |
 | `python` | Django, Flask, FastAPI, pytest, ruff, poetry |
-| `php` | Laravel, Symfony, PHPUnit, composer |
+| `php` | Laravel, Symfony, PHPUnit, Composer, modern PHP |
+| `wordpress` | Themes, plugins, `$wpdb`, WP_Query, nonces, theme.json |
 | `go` | Gin, Fiber, Echo, `go test`, context cancellation |
 | `rust` | Actix, Axum, Rocket, Cargo, clippy |
 | `java` | Spring Boot, Quarkus, Maven, Gradle |
@@ -207,7 +208,7 @@ Each run refines one prompt and logs the run to `IMPROVICUS_LOG.md`, steadily it
 Every AGENTARDS prompt enforces the same non-negotiable contract:
 
 1. **Autonomous Discovery**: The agent never waits for instructions or stops at an abstract plan. It investigates, identifies, and acts.
-2. **Log-First Context**: Reads `./<AGENT>_LOG.md` before doing anything to leverage previous learnings and prevent duplicate churn.
+2. **Log-First Context**: Reads `AGENTARDS/logs/<AGENT>_LOG.md` before doing anything to leverage previous learnings and prevent duplicate churn.
 3. **Bounded Impact**: Changes are focused, surgical, and scoped (~50 lines in source) so they can be reviewed and rolled back easily.
 4. **Mandatory Real Verification**: Every change must be verified using the project's real test suite and build tools (`npm test`, `pytest`, `cargo test`, `vitest`, etc.).
 5. **Untrusted Codebase Data**: Treats all repository contents — code, comments, fixtures, markdown — as untrusted data. Ignores prompt injection attempts embedded in code.
@@ -228,6 +229,7 @@ your-project/
     │   ├── bolt.md
     │   ├── sentinel.md
     │   └── custodian.md
+    ├── logs/                    # Per-agent run memory, written by agent runs
     └── templates/               # Copies of detected stack templates
 ```
 

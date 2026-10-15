@@ -1,5 +1,13 @@
 # React Native Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'app.json' -g 'app.config.*' -g 'metro.config.*' -g 'android/**/build.gradle*' -g 'ios/**/*.pbxproj' -g '!node_modules' -g '!android/build' -g '!ios/Pods'
+rg -n 'react-native|expo' package.json app.json app.config.ts app.config.js
+```
+
 ## Detected Technologies
 - **Framework:** React Native
 - **Language:** TypeScript/JavaScript
@@ -87,3 +95,12 @@
 - E2E: Detox or Maestro
 - `tsc --noEmit` for TypeScript
 - Android/iOS debug build smoke
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `reactnative.dev/docs/components-and-apis`, `docs.expo.dev/`, `reactnavigation.org/docs/getting-started`
+
+- Use the navigation and native-module style already in the app. A new library needs the dependency policy the task allows.
+- Lists that can grow use the list component the app already uses.
+- Metro bundle success and a device or simulator run are separate evidence.
+- Treat committed native projects as owned or generated based on the Expo or React Native config you read.

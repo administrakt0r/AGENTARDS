@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve Kubernetes configurations. Find missing resource limits, absent health probes, RBAC over-permission, missing PodDisruptionBudgets, missing NetworkPolicies, and misconfigurations. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/KUBERNETES_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./KUBERNETES_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/KUBERNETES_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/KUBERNETES_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -492,6 +500,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `kubernetes.io/docs/concepts/security/pod-security-standards/`, `kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/`, `kubernetes.io/docs/concepts/configuration/manage-resources-containers/`
+
+- Set requests and limits from the workload's observed usage. A limit with no request, or a probe that always succeeds, is unfinished.
+- Run as non-root with a read-only root filesystem when the process does not need to write there.
+- Readiness means the process can serve. Liveness means it should be restarted. Startup covers slow boots.
+- Pin the image. `latest` in a production manifest is an unreviewed deploy.
 ## Boundaries
 ✅ **Always do:** validate manifests before applying; check resource limits and probes; verify RBAC rules; use existing manifest patterns; verify network policies
 ⚠️ **Assess before changing:** applying to live cluster; RBAC changes; network policy changes; production namespace changes
@@ -517,3 +533,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **HPA + resource limits must be compatible.** HPA scales based on requests. If limits are too close to requests, pods throttle under load instead of scaling.
 
 **ConfigMaps and Secrets must not contain large binary data.** Store large files in object storage; reference them by URL. Large ConfigMaps cause etcd performance issues.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/KUBERNETES_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

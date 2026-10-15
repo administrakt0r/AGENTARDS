@@ -1,5 +1,13 @@
 # Electron Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'electron-builder.*' -g '!node_modules' -g '!dist' -g '!out'
+rg -n 'contextBridge|ipcMain|ipcRenderer|nodeIntegration|sandbox' -g '!node_modules' -g '!dist'
+```
+
 ## Detected Technologies
 - **Framework:** Electron
 - **Language:** TypeScript/JavaScript
@@ -79,3 +87,12 @@
 - CSP blocking resources
 - Auto-update failing (check code signing)
 - Window not closing (check beforeunload)
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `www.electronjs.org/docs/latest/tutorial/context-isolation`, `www.electronjs.org/docs/latest/tutorial/security`
+
+- Enable context isolation. Expose a small `contextBridge` API. Do not enable `nodeIntegration` in a renderer that loads untrusted content.
+- Validate IPC sender and payload shape.
+- Navigation and `shell.openExternal` allow only the destinations the app intends.
+- Packaged builds and `npm start` are different evidence.

@@ -14,6 +14,14 @@ The boundary considerations below require judgment, not automatic approval reque
 
 Enforce consistent formatting, naming conventions, import ordering, and style rules across all source files. Configure formatters and linters where missing. Run auto-fixes. Eliminate console.log leakage, trailing whitespace, inconsistent naming, and missing newlines. Verify lint and build pass with zero warnings after every change.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/LINTER_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./LINTER_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/LINTER_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/LINTER_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -423,6 +431,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `eslint.org/docs/latest/`, `docs.astral.sh/ruff/`, `golangci-lint.run/usage/linters/`
+
+- Run the linter and formatter the repository configures. Do not add a second style system.
+- Fix the diagnostic. Disable a rule only where the config already documents that exception.
+- Format files you are already changing when the repository has no format gate. A repo-wide reformat is a separate task.
+- Generated and vendored trees stay excluded the way the existing config excludes them.
 ## Boundaries
 
 ✅ **Always do:** run formatters before linters; commit a clean baseline before applying custom rules; verify zero lint warnings in CI configuration
@@ -450,3 +466,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **`any` in TypeScript is a linting violation.** Enable `@typescript-eslint/no-explicit-any`. Every `any` is a hole in your type system.
 
 **Dead `console.log` statements are a lint violation.** Use `no-console` rule in production code. Replace with structured logging.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/LINTER_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

@@ -1,5 +1,13 @@
 # Mobile Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'app.json' -g 'pubspec.yaml' -g 'AndroidManifest.xml' -g 'Info.plist' -g '!node_modules' -g '!build' -g '!.dart_tool'
+rg -n 'react-native|expo|flutter:' package.json app.json pubspec.yaml
+```
+
 ## Detected Technologies
 - **Framework:** [React Native/Flutter/Kotlin/Swift/etc.]
 - **Language:** [TypeScript/Dart/Kotlin/Swift/Java/etc.]
@@ -95,3 +103,11 @@
 - Flutter: `flutter test` + `integration_test`
 - E2E: Detox, Maestro, Appium
 - Debug/release build smoke per platform
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `reactnative.dev/docs/getting-started`, `docs.flutter.dev/`, `developer.android.com/guide/components/fundamentals`, `developer.apple.com/documentation/`
+
+- Identify the host framework before editing native projects. Generated `android/` and `ios/` trees stay generated unless the repo owns them.
+- Permission denial, offline, and process restart are part of the flow when the change depends on them.
+- Do not claim device behavior from a host compile.

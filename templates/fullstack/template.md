@@ -1,5 +1,13 @@
 # Fullstack Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'pnpm-workspace.yaml' -g 'turbo.json' -g 'nx.json' -g 'go.mod' -g 'pyproject.toml' -g '!node_modules' -g '!dist'
+rg -n 'workspaces|apps/|packages/' package.json pnpm-workspace.yaml turbo.json nx.json
+```
+
 ## Detected Technologies
 - **Frontend:** [React/Vue/Angular/Svelte + Next.js/Nuxt/etc.]
 - **Backend:** [Express/NestJS/Django/Flask/FastAPI/Laravel/etc.]
@@ -86,3 +94,12 @@
 - E2E: Playwright / Cypress against a running stack
 - DB: Testcontainers / ephemeral test database
 - `tsc --noEmit` for shared types
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `turbo.build/repo/docs`, `nx.dev/docs/`, `pnpm.io/workspaces`
+
+- Run commands in the package directory the workspace expects. A root script that ignores the package is the wrong check.
+- Share types through the package the repo already publishes internally.
+- Frontend and backend verification are both reported when the change crosses that boundary.
+- Do not collapse separate apps into one project as a cleanup.

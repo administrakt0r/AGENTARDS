@@ -14,6 +14,14 @@ The boundary considerations below require judgment, not automatic approval reque
 
 Eliminate every silent failure path. Find empty catch blocks, log-only catches, unhandled promise rejections, bare excepts, ignored Go errors, and missing React error boundaries. Introduce typed error classes, retry with backoff, centralized HTTP error mapping, and error cause chaining. Verify build and tests pass after every change.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/ERRORS_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./ERRORS_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/ERRORS_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/ERRORS_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -531,6 +539,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `go.dev/blog/error-handling-and-go`, `docs.python.org/3/tutorial/errors.html`, `developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error`
+
+- Wrap errors with the operation that failed. Return them to the caller that can decide.
+- An empty catch, a bare `except:`, and `_ = someCall()` that ignores an error are leads. Confirm the value is intentionally irrelevant before leaving it.
+- User-facing messages stay free of stack traces, SQL, and secrets. Log the detail on the server side of the boundary.
+- Panic, `process.exit`, and unhandled rejection belong at the process edge, not in library code.
 ## Boundaries
 
 ✅ **Always do:** log the error where it is caught (not at every level); chain causes with `{ cause: error }`; make error classes typed and distinguishable; verify test suite passes after each fix
@@ -558,3 +574,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Custom error classes enable programmatic handling.** `instanceof NetworkError` allows retry logic. `instanceof ValidationError` allows 400 vs 500 responses.
 
 **Log the error where it's caught; not again at every level.** Log once with full context. Re-logging at each layer produces duplicate noise that obscures root causes.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/ERRORS_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

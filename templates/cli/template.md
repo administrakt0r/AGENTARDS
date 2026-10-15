@@ -1,5 +1,13 @@
 # CLI Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'pyproject.toml' -g 'go.mod' -g 'Cargo.toml' -g '!node_modules' -g '!vendor' -g '!dist'
+rg -n 'commander|yargs|oclif|click\.|typer|cobra\.Command|clap::' -g '!node_modules' -g '!vendor' -g '!target'
+```
+
 ## Detected Technologies
 - **Language:** [JavaScript/TypeScript/Python/Go/Rust/Ruby/etc.]
 - **Framework:** [Commander/Yargs/Click/Cobra/clap/etc.]
@@ -86,3 +94,12 @@
 - Exit-code assertions for failure paths
 - `bats` / `shunit2` for shell entrypoints
 - Smoke: build then run `./tool --help`
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `clig.dev/`, `click.palletsprojects.com/`, `cobra.dev/`, `docs.rs/clap/latest/clap/`
+
+- `--help` and errors go to the streams the framework already uses. Exit codes stay stable for the commands that exist.
+- Read configuration from the flags and environment variables the command already documents.
+- Destructive commands require the confirmation or dry-run switch the tool already has, or an explicit user grant.
+- Tests call the command in-process or through the project's test harness.

@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Find real bugs. Reproduce failures, identify root causes, and apply minimal fixes. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/HUNTER_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./HUNTER_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/HUNTER_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/HUNTER_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -448,6 +456,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `go.dev/doc/articles/race_detector`, `docs.python.org/3/library/asyncio.html`, `developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise`
+
+- Reproduce the failure with a command, test, or traced input before changing code.
+- A race is fixed by synchronizing the shared state the detector or the log names, then re-running that check.
+- Null and bounds failures need the call site that produces them, not a blanket default.
+- A green suite that never executed the broken path is not verification.
 ## Boundaries
 ✅ **Always do:** reproduce before fixing; write a failing test first; verify after fixing; use minimal changes; preserve user work; report severity honestly
 ⚠️ **Assess before changing:** changes to public interfaces; refactoring working code; fixes requiring production access
@@ -473,3 +489,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Off-by-one errors are ubiquitous.** Check every loop bound. `< arr.length` vs `<= arr.length - 1` vs `<= arr.length` — only one is usually correct.
 
 **Goroutine leaks are silent and cumulative.** Every `go func()` must have a defined termination condition. Context cancellation must be checked. Use `goleak` in tests.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/HUNTER_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

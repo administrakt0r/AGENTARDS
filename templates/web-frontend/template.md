@@ -1,5 +1,13 @@
 # Web Frontend Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'package.json' -g 'vite.config.*' -g 'next.config.*' -g 'nuxt.config.*' -g 'angular.json' -g 'index.html' -g '!node_modules' -g '!dist'
+rg -n '"react"|"vue"|"svelte"|"@angular/core"|"next"' package.json
+```
+
 ## Detected Technologies
 - **Framework:** [React/Vue/Angular/Svelte/Next.js/Nuxt/etc.]
 - **Language:** [JavaScript/TypeScript]
@@ -115,3 +123,12 @@ src/
 - E2E: Playwright / Cypress
 - `tsc --noEmit`, ESLint, stylelint
 - Build smoke: `npm run build` then preview
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `react.dev/reference/react`, `vuejs.org/guide/introduction.html`, `svelte.dev/docs`, `nextjs.org/docs`, `vite.dev/guide/`
+
+- Follow the framework and the styling system `package.json` already depends on.
+- User-controlled HTML is sanitized or avoided. `dangerouslySetInnerHTML` and `v-html` are leads.
+- Effects clean up subscriptions. Lists use stable keys.
+- Typecheck, lint, unit tests, and the production build are separate checks. Use the scripts the package defines.

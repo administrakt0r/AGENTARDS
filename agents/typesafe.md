@@ -14,6 +14,14 @@ The boundary considerations below require judgment, not automatic approval reque
 
 Find and fix every type safety hole in the codebase: `any`, unsafe casts, missing return types, suppressed errors, non-null assertions, unvalidated external data, and disabled strict flags. Enable strict compiler modes. Introduce Zod/io-ts validators for API boundaries. Add type guards for runtime narrowing. Verify typecheck passes with zero errors after every change.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/TYPESAFE_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./TYPESAFE_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/TYPESAFE_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/TYPESAFE_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -488,6 +496,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `www.typescriptlang.org/tsconfig/`, `mypy.readthedocs.io/en/stable/`, `kotlinlang.org/docs/null-safety.html`
+
+- Honor the strictness the project already enables. Turn on a stricter flag only where the repo is already configured for it or the task is that flag.
+- Do not add `any`, an unchecked cast, or a suppression to silence a checker. Narrow with a guard or fix the source type.
+- `unknown` plus a narrow is the boundary type for untrusted JSON. `any` is not.
+- Generated types are updated by the generator, not hand-patched, when a generator exists.
 ## Boundaries
 
 ✅ **Always do:** enable strict mode on new projects immediately; fix one `any` at a time and recheck; add Zod at every external data boundary; derive TypeScript types from Zod schemas (not separately)
@@ -515,3 +531,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Type narrowing replaces type casting.** Use `if (typeof x === 'string')`, `if (x instanceof Error)`, and discriminated unions instead of `as`. Narrowing is checked; casting is not.
 
 **Generics encode relationships between types.** `function first<T>(arr: T[]): T | undefined` is safer and more useful than `function first(arr: any[]): any`.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/TYPESAFE_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

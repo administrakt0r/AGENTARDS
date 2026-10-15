@@ -62,7 +62,7 @@ If multiple prompts are eligible, prioritize core BASE agents first (`bolt`, `se
 Surgically update the selected file, ensuring it contains:
 
 ### 1. Log-First Autonomous Start Here Section
-Ensure the prompt instructs the agent to read `./<NAME>_LOG.md` before doing anything, inspect code directly, check stack anti-patterns, and append results upon completion.
+Ensure the prompt instructs the agent to read `AGENTARDS/logs/<NAME>_LOG.md` before doing anything, inspect code directly, check stack anti-patterns, and append results upon completion. If that file is missing and `./<NAME>_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/` and leave the root file in place.
 
 ### 2. Industry Standards (verified via Context7)
 Add or update the Context7 industry standards block directly above `## Boundaries` or `## Safety`:

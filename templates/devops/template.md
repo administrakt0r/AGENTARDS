@@ -1,5 +1,13 @@
 # DevOps Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g '.github/workflows/*' -g '.gitlab-ci.yml' -g 'Dockerfile*' -g 'docker-compose*.yml' -g '*.tf' -g 'charts/**' -g '!node_modules'
+rg -n 'runs-on:|image:|resource\s+"' -g '.github/workflows/*' -g '.gitlab-ci.yml' -g '*.tf' -g 'Dockerfile*'
+```
+
 ## Detected Technologies
 - **CI/CD:** [GitHub Actions/GitLab CI/CircleCI/Jenkins/etc.]
 - **Containers:** [Docker/Podman/etc.]
@@ -87,3 +95,12 @@
 - `shellcheck` scripts and `yamllint` manifests
 - `kubeconform` / `kubeval` for K8s manifests
 - `docker compose config` for compose validation
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `docs.github.com/en/actions`, `docs.docker.com/build/building/best-practices/`, `developer.hashicorp.com/terraform/language/state`
+
+- Pipeline, image, and infrastructure changes stay inside the tool the repository already uses.
+- Pin third-party CI actions the way neighboring workflows do. Cache keys include lockfiles.
+- Do not commit state files, kubeconfigs, or cloud credentials.
+- A plan, a lint, and an apply are separate steps. Apply needs authority already granted.

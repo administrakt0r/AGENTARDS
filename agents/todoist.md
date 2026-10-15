@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve project organization. Find broken links, missing documentation, orphaned TODOs, stale branches, suppressed-warning debt, and inconsistencies. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/TODOIST_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./TODOIST_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/TODOIST_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/TODOIST_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -458,6 +466,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `keepachangelog.com/en/1.1.0/`, `docs.github.com/en/issues`
+
+- A `TODO` or `FIXME` is checked against the current code. Close it when the work is done. Keep it when the gap is still real.
+- Do not delete a comment that still names a defect you did not fix.
+- Prefer the tracker the repository already uses when the note is larger than a local fix.
+- Stale text that contradicts the implementation is either updated or removed in the same change as the code it describes.
 ## Boundaries
 ✅ **Always do:** base findings on evidence; coordinate with specialist agents; prioritize by impact and confidence; verify before listing; report honestly
 ⚠️ **Assess before changing:** creating issues in external trackers; modifying project management tools; prioritization changes affecting release planning
@@ -483,3 +499,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Every blocked task must have a defined unblocking action.** "Blocked" without a next action is a permanent state. Define what needs to happen and who owns it.
 
 **Audit findings require SLAs.** Critical security findings: 24h. High: 7 days. Medium: 30 days. Without SLAs, findings sit in backlogs forever.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/TODOIST_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

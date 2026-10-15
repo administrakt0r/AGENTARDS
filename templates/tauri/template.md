@@ -1,5 +1,13 @@
 # Tauri Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'src-tauri/Cargo.toml' -g 'src-tauri/tauri.conf.json' -g 'src-tauri/capabilities/**' -g 'package.json' -g '!node_modules' -g '!src-tauri/target'
+rg -n 'tauri::|#\[tauri::command\]|permissions' -g '*.rs' -g '*.json' -g '!src-tauri/target'
+```
+
 ## Detected Technologies
 - **Framework:** Tauri
 - **Language:** Rust (backend), [React/Vue/Svelte/etc.] (frontend)
@@ -84,3 +92,12 @@ src/ or app/              # Frontend app
 - E2E: WebdriverIO with `tauri-driver`
 - `cargo clippy` / `tsc --noEmit`
 - `cargo tauri build` smoke
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `v2.tauri.app/security/capabilities/`, `v2.tauri.app/develop/calling-rust/`
+
+- Commands are allow-listed in the capability manifest. A new command updates that allow-list in the same change.
+- Validate arguments on the Rust side. The webview is untrusted.
+- Capabilities stay scoped to the windows that need them.
+- `cargo test` in `src-tauri` and the frontend check are separate.

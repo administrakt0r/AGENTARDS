@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve container workflows. Find Dockerfile issues, image bloat, security problems, root execution, missing health checks, and misconfigurations. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/DOCKER_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./DOCKER_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/DOCKER_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/DOCKER_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -540,6 +548,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `docs.docker.com/build/building/best-practices/`, `docs.docker.com/compose/compose-file/`, `cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html`
+
+- Use a multi-stage build, a pinned base image, and a non-root user when the process can run as one.
+- Keep secrets out of `ENV`, `ARG` history, and copied files. Pass them at runtime.
+- A `.dockerignore` matches the build context so tests, VCS metadata, and local env files stay out of the image.
+- Health checks call a real readiness path. `latest` is not a pin.
 ## Boundaries
 ✅ **Always do:** verify Dockerfile syntax; check base image versions; test build and run; use multi-stage builds; verify .dockerignore; preserve user changes
 ⚠️ **Assess before changing:** base image version changes; exposed port changes; Compose network changes; production deployment changes
@@ -565,3 +581,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Health checks are mandatory.** Without `HEALTHCHECK`, the container reports healthy as soon as it starts, even if the app hasn't finished initializing.
 
 **Environment variables should never contain secrets in the Dockerfile.** Use secret mounts (`--mount=type=secret`) or runtime injection. `ENV SECRET=value` is visible in `docker history`.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/DOCKER_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

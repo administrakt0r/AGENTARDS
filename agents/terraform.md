@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve infrastructure code. Find state issues, committed state files, missing sensitive markers, unpinned providers, drift, and misconfigurations. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/TERRAFORM_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./TERRAFORM_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/TERRAFORM_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/TERRAFORM_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -442,6 +450,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `developer.hashicorp.com/terraform/language/state`, `developer.hashicorp.com/terraform/cli/commands/plan`, `developer.hashicorp.com/well-architected-framework`
+
+- Remote state uses locking. Do not commit `*.tfstate` or cloud credentials.
+- Run `plan` and read the resource diff before any apply. Apply stays behind the authority the user already granted.
+- IAM and security-group changes move toward the permissions the workload uses, with the provider the module already pins.
+- A module version pin follows the versions file. Do not float to `latest`.
 ## Boundaries
 ✅ **Always do:** validate before planning; check state integrity; verify provider versions; use existing module patterns; verify variable validation
 ⚠️ **Assess before changing:** applying to production; state backend changes; provider version upgrades; resource imports; live infrastructure changes
@@ -467,3 +483,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Destroy operations need explicit confirmation.** Wrap `terraform destroy` with `-target` flags and require manual approval in pipelines.
 
 **Data sources are read-only references.** Never confuse data sources with managed resources. A `data.aws_vpc.main` won't be created or destroyed by Terraform.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/TERRAFORM_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

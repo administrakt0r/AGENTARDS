@@ -53,7 +53,7 @@ Sources: `developers.cloudflare.com/workers/`, `developers.cloudflare.com/d1/`, 
 | `database` | D1 schema migrations, SQLite index optimization, transaction boundaries, batch limits |
 | `custodian` | Dead route handlers, unused D1 queries, obsolete environment variables |
 | `testing` | Vitest with mock D1 database bindings, security header tests, mobile API tests |
-| `curator` | Wrangler CLI and Cloudflare Vite plugin updates, dependency audits |
+| `shtef` | Wrangler CLI and Cloudflare Vite plugin updates, dependency audits |
 
 ## Verification Commands
 

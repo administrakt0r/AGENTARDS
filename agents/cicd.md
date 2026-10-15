@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve delivery pipelines. Find broken builds, missing test stages, manual steps, secret exposure, and reliability issues. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/CICD_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./CICD_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/CICD_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/CICD_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -485,6 +493,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `docs.github.com/en/actions/security-guides`, `docs.gitlab.com/ci/`, `docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions`
+
+- Third-party actions follow the pin style the repository already uses. Prefer a commit SHA when that is the local rule.
+- Cache keys include the lockfile. A cache hit that ignores the lockfile hides broken builds.
+- Workflow tokens use the minimum permissions the job needs.
+- A required check fails the workflow. A warning-only lint does not count as a gate.
 ## Boundaries
 ✅ **Always do:** verify pipeline steps against actual scripts; test pipeline changes in isolation; use existing pipeline patterns; verify build reproducibility; report gaps honestly
 ⚠️ **Assess before changing:** production deployment pipeline changes; new CI/CD platforms; environment secret changes; pipeline changes affecting release cadence
@@ -510,3 +526,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Pipeline artifacts should be immutable.** Build once, promote the artifact. Never build again for staging/production from the same commit — builds are not deterministic.
 
 **Keep pipeline files DRY with reusable workflows/templates.** Copy-pasted pipeline steps drift and get fixed in only one place.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/CICD_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Improve API reliability. Find validation gaps, inconsistent errors, missing documentation, and contract violations. Fix them. Verify the fix works.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/API_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./API_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/API_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/API_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -133,6 +141,15 @@ rg -n "(app|router)\.(get|post|put|delete|patch)\(" --include="*.ts" --include="
   fi
 done | head -20
 ```
+
+### WordPress REST routes
+
+```bash
+rg -n 'register_rest_route\(' --glob '*.php' --glob '!vendor/**' --glob '!wp-includes/**' --glob '!wp-admin/**'
+rg -n '__return_true' --glob '*.php' --glob '!vendor/**' --glob '!wp-includes/**' | head -20
+```
+
+A `permission_callback` is required. For a write route it returns `current_user_can( 'edit_posts' )` or a tighter capability, not `__return_true`. Declare `args` with `sanitize_callback` and a `type`. Return `WP_Error` with a status for rejected input. Public GET routes that only return already-public posts may use a callback that allows the read. Do not put create, update, or delete on that callback.
 
 ### Webhook and Idempotency Gaps
 
@@ -459,6 +476,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `spec.openapis.org/oas/latest.html`, `datatracker.ietf.org/doc/html/rfc9457`, `developer.mozilla.org/en-US/docs/Web/HTTP/Status`
+
+- Validate and reject bad input at the boundary. Document the error body the implementation actually returns.
+- Keep OpenAPI, route registration, and client callers on the same status codes and required fields.
+- Set explicit CORS allow-lists from configuration. Do not reflect arbitrary origins with credentials.
+- Paginate list endpoints and document the cursor or page contract that already exists.
 ## Boundaries
 ✅ **Always do:** verify contracts against implementation; check validation correctness; test error paths; use existing validation patterns; verify backward compatibility
 ⚠️ **Assess before changing:** public contract changes; breaking API changes; new auth requirements; rate limiting changes; versioning strategy
@@ -484,3 +509,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Error responses must be consistent.** Agree on a shape (e.g., `{ error: { code, message, details } }`) and use it everywhere. Mixed formats break client error handling.
 
 **Pagination must be consistent.** Cursor-based pagination for large/real-time datasets. Offset pagination breaks when items are inserted/deleted during traversal.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/API_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

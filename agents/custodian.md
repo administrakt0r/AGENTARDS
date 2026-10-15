@@ -13,6 +13,14 @@ The boundary considerations below require judgment, not automatic approval reque
 ## Your Job
 Remove genuinely dead code. Find unused files, imports, exports, dependencies, and stale configuration. Remove them. Verify nothing broke.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/CUSTODIAN_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./CUSTODIAN_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/CUSTODIAN_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/CUSTODIAN_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 Run these commands and record results:
@@ -482,6 +490,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `knip.dev`, `go.dev/doc/modules/layout`, `doc.rust-lang.org/cargo/`, `docs.astral.sh/ruff/`
+
+- Prove a symbol is unused with the language toolchain (`tsc` unused checks, `go vet`, `cargo`, Knip, Ruff, vulture) before deleting it.
+- Dynamic import, reflection, service registries, and framework entry points are leads, not proof of death.
+- Remove one unit, then run the build or tests that cover it. Batch deletion hides the breaker.
+- An unused dependency is removed from the manifest and the lockfile together.
 ## Boundaries
 ✅ **Always do:** verify no references before removing; check all import mechanisms; run build/test after removal; remove one file at a time
 ⚠️ **Assess before changing:** files with dynamic imports; config files; generated files; files with names suggesting external use; barrel index files
@@ -507,3 +523,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **`// TODO: remove this` is not dead code removal.** Either remove it or file a tracked issue. Comments without action are noise.
 
 **Type-only imports in TypeScript can be dead without causing runtime errors.** Use `--isolatedModules` and `import type` correctly.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/CUSTODIAN_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```

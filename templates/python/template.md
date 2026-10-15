@@ -1,5 +1,13 @@
 # Python Stack Template
 
+
+## Stack Detection Signals
+
+```bash
+rg --files -g 'pyproject.toml' -g 'requirements*.txt' -g 'manage.py' -g 'pytest.ini' -g '!**/__pycache__/**' -g '!.venv' -g '!venv'
+rg -n 'fastapi|django|flask|pytest' pyproject.toml requirements*.txt -g '*.py' -g '!.venv' -g '!venv'
+```
+
 ## Detected Technologies
 - **Framework:** [Django/Flask/FastAPI/Typer/etc.]
 - **Package Manager:** [pip/poetry/pipenv/conda/uv/etc.]
@@ -97,3 +105,12 @@ tests/
 - Property tests: Hypothesis
 - Lint/type: `ruff`, `mypy`
 - `tox` / `nox` for multi-version matrices
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `docs.python.org/3/tutorial/`, `docs.pytest.org/en/stable/`, `docs.astral.sh/ruff/`, `fastapi.tiangolo.com/`, `docs.djangoproject.com/en/stable/`
+
+- Use the environment tool the repo documents (`venv`, Poetry, uv, pip). Do not add another.
+- Type-check with mypy or Pyright only when that tool is already configured.
+- Async handlers stay non-blocking. ORM queries that loop over relations are N+1 leads, confirmed by the query count.
+- `pytest` is the default runner when `pyproject.toml` or `pytest.ini` says so.

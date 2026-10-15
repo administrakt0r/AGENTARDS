@@ -49,3 +49,12 @@ Specify the requested feature's trigger, execution context, data flow, minimum p
 5. Inspect the actual distributable when packaging is in scope. Exclude secrets, profiles, and unrelated development files. Consult current official Chrome documentation for version-sensitive APIs and store rules.
 
 Keep static/build, browser, lifecycle, and store-review results separate. Missing browser tooling means runtime **UNKNOWN**. Loading unpacked code does not prove Chrome Web Store acceptance. Do not submit, publish, or change the user's everyday browser profile without authorization.
+
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `developer.chrome.com/docs/extensions/mv3/`, `developer.chrome.com/docs/extensions/develop/concepts/content-scripts`
+
+- Manifest V3 uses a service worker. Do not add a persistent background page.
+- Message senders are checked. Content scripts treat the page as untrusted.
+- Host permissions stay as narrow as the feature. Optional permissions are requested at the gesture that needs them.
+- A store listing and a local load are different evidence.

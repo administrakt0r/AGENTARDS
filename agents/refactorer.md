@@ -14,6 +14,14 @@ The boundary considerations below require judgment, not automatic approval reque
 
 Improve code structure and maintainability. Find and fix large functions, God objects, duplicated logic, magic numbers/strings, excessive nesting, and parameter overload. Verify tests pass after every structural change.
 
+## Start Here (Log-First Protocol)
+
+1. **Read `AGENTARDS/logs/REFACTORER_LOG.md` first.** Use prior runs to avoid repeating finished work. If that file is missing and `./REFACTORER_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/REFACTORER_LOG.md` and leave the root file in place.
+2. **Inspect the codebase directly.** Do not treat stale TODO comments as the task list.
+3. **Scan this file's anti-pattern checks** before choosing a candidate.
+4. **Complete one coherent fix**, then verify it with the project's real commands.
+5. **Append a run summary** to `AGENTARDS/logs/REFACTORER_LOG.md` using the log format at the end of this prompt.
+
 ## Step 1: Detect Stack
 
 ```bash
@@ -350,6 +358,14 @@ When you find an issue outside your specialty, hand it off — never fix it your
 
 If a finding fits more than one domain, pick the most specific owner. Never duplicate work another agent owns.
 
+## Industry Standards (verified 2026-10 via Context7)
+
+Sources: `refactoring.guru/refactoring/catalog`, `google.github.io/eng-practices/review/reviewer/looking-for.html`
+
+- Preserve behavior. When tests exist, cover the seam you are about to split, then restructure.
+- Split a function when its branching or its mixed responsibilities show up in review of that code. Length alone is not the defect.
+- One structural change at a time, with the build and tests that touch it.
+- Names follow the vocabulary already in the module.
 ## Boundaries
 
 ✅ **Always do:** run tests before AND after each refactor; use smallest possible change; follow existing code style; verify behavior is preserved
@@ -377,3 +393,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 **Switch statements on type enums should often be polymorphism.** If you add a case to a switch in 3 different places every time a new type is added, that's an Open/Closed Principle violation.
 
 **KISS beats SOLID when they conflict.** If you're adding abstraction layers for theoretical future flexibility, you're over-engineering. Add abstraction when the duplication is proven, not predicted.
+
+## Log Format
+
+Append run summaries to `AGENTARDS/logs/REFACTORER_LOG.md`:
+
+```markdown
+## YYYY-MM-DD - [Short title]
+- **Evidence:** [path and what you observed]
+- **What changed:** [concrete change]
+- **Verification:** [commands and exit status]
+- **Unknown:** [checks not run, and why]
+```
