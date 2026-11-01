@@ -111,3 +111,7 @@ Sources: `reactnative.dev/docs/getting-started`, `docs.flutter.dev/`, `developer
 - Identify the host framework before editing native projects. Generated `android/` and `ios/` trees stay generated unless the repo owns them.
 - Permission denial, offline, and process restart are part of the flow when the change depends on them.
 - Do not claim device behavior from a host compile.
+
+## Android and native code
+
+When the project has an Android target, apply `templates/android/template.md` coding rules to hand-written Kotlin, Compose, or Views. Generated `android/` and `ios/` trees stay generated unless the repo owns them. Do not introduce Compose, Hilt, Room, or DataStore into a React Native, Expo, or Flutter app that does not already use them. Permission prompts happen at the point of use and include denial and revocation. A host compile is not device proof.

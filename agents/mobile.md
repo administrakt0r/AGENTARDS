@@ -226,7 +226,31 @@ rg -n "requestPermission\|requestAuthorization\|PermissionsAndroid.request" \
 done | head -10
 ```
 
+## Android native bar
+
+When the project contains hand-written Kotlin, Compose, or Views, follow `templates/android/template.md` **Coding rules** before editing. The snippets later in this file are techniques, not a license to add a library.
+
+```bash
+# Kotlin leads. A match is a lead, not a defect, until you read the function.
+rg -n '!!|GlobalScope|runBlocking|TODO\(\)' --glob '*.kt' --glob '!**/build/**' | head -30
+rg -n 'catch\s*\(' --glob '*.kt' --glob '!**/build/**' | head -20
+rg -n 'android:exported="true"' --glob 'AndroidManifest.xml' --glob '!**/build/**' | head -20
+```
+
+- At most three indentation levels in a function. Return early. No nested scope-function chains.
+- No `!!`, empty `catch`, swallowed `CancellationException`, `GlobalScope`, or `runBlocking`.
+- No pass-through use case, single-implementation interface, or `Manager` / `Helper` / `Util` type.
+- No new Gradle module, DI framework, or navigation library unless the task asks for it.
+- Do not invent a Kotlin or AndroidX API. Check the version this repo compiles.
+- `PendingIntent.FLAG_IMMUTABLE` unless mutation is required. New components stay `exported="false"` unless an external caller needs them.
+- Request permissions at the point of use. Handle denial and revocation.
+- Loading, empty, and error are part of the screen you change. User-facing text is localized.
+- Build the variant you changed before calling it done. Do not weaken a test to go green.
+- React Native, Expo, and Flutter keep their own UI stack. Apply the Kotlin rules to hand-written native code only. Do not rewrite that UI in Compose because the empty-project defaults say Compose.
+
 ## Step 3: Fix What You Find
+
+The examples below show a technique. Do not add React Query, a navigation library, an image library, or a new architecture unless the project already uses it and this task needs it. Android Kotlin and Compose changes follow `templates/android/template.md`.
 
 ### Add keyExtractor to FlatList
 
@@ -540,7 +564,9 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 
 **Lifecycle is not the same as process lifecycle.** An Activity/Fragment can be destroyed and recreated without the process dying. Save UI state in `ViewModel` and restore it from `savedInstanceState`.
 
-**App size matters in markets with slow networks.** Enable ProGuard/R8 minification. Use App Bundles (Android) or bitcode (iOS) for per-device optimization.
+**App size matters in markets with slow networks.** Enable ProGuard/R8 minification when the release build already supports it. Use App Bundles on Android for per-device delivery. Do not treat R8 as a secrecy control, and do not broaden keep rules to hide a crash.
+
+**Android code stays flat.** Guard clauses, no `!!`, no swallowed cancellation, no main-thread I/O, no layer that only forwards a call. The full checklist is `templates/android/template.md`. A detected stack wins over the empty-project Compose/Hilt/Room defaults.
 
 ## Log Format
 

@@ -78,7 +78,7 @@ Every generated agent must stand alone and include:
    - If that file is missing and `./<AGENT>_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/` and leave the root file in place.
    - Inspect the codebase directly; do not rely on stale TODO files.
    - Scan the stack-specific anti-pattern checklist before selecting a candidate task.
-3. **Stack-Tailored Anti-Pattern Checklist:** provide concrete checkable items derived from the detected template(s) (e.g. database N+1 queries, unindexed queries, missing statement batching, edge caching leaks, bundle budget thresholds, recomposition waste, memory leaks).
+3. **Stack-Tailored Anti-Pattern Checklist:** provide concrete checkable items derived from the detected template(s) (e.g. database N+1 queries, unindexed queries, missing statement batching, edge caching leaks, bundle budget thresholds, recomposition waste, memory leaks). When `android` is selected, merge the **Coding rules** section from `templates/android/template.md` into every generated agent that edits code. Adapt examples to the detected UI (Compose, Views, or a cross-platform host such as React Native or Flutter). Apply Kotlin rules only to hand-written native code. The empty-project default stack in that template is a fallback, never a migration: a detected library, navigation system, DI framework, database, or generated `android/` tree always wins. Do not introduce Compose, Hilt, Room, Navigation Compose, or DataStore into a project that does not already use them.
 4. **Local Map:** concrete paths, entry points, services, routes, configuration, and test files in this repository.
 5. **Industry Standards (verified via Context7):** cite official documentation and pinned versions for detected libraries and frameworks (e.g. React 19, React Router 7, Cloudflare Workers & D1, Compose BOM, Room 3, Vitest 5, FastAPI).
 6. **Detect:** recheck stack facts that can drift, cite observed configuration, and mark unknowns.
@@ -152,6 +152,7 @@ Compare destinations before writing. Create missing files, skip identical ones, 
 
 - Confirm selected policies/templates exist strictly in `AGENTARDS/`, the index agrees with output, and configuration parses as JSON.
 - Check five stages, boundaries, safety, ownership, autonomous implementation default, and verification guidance in every curated policy. Confirm a bare invocation leads to discovery and completed work, not an approval loop or report-only result, unless explicitly overridden.
+- When `android` is selected, confirm code-writing agents include the coding-rules checklist (flat control flow, no invented APIs, no pass-through layers, explicit errors, tests not weakened) and that those rules still prefer the detected stack over the empty-project defaults.
 - Confirm **NO** files or directories were created outside `AGENTARDS/` (no `julesprompts/`, no duplicate prompt files at root).
 - Check fences by delimiter type/length, local links, and unresolved placeholders. Explain unknown tooling rather than inventing commands.
 - Review the diff for unintended app changes, lost customization, secrets, unsupported assumptions, and conflicting authority rules.
