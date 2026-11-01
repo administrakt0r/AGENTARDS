@@ -268,3 +268,47 @@ Read this file before running Agenticus Improvicus. Append only useful run summa
   - `rg` command count: 22 → 38 (+16 new commands)
   - `# BEFORE` / `# AFTER` pattern count: 0 → 14
   - Line count: 495 → 821 (+326 lines net; 384 insertions, 58 deletions)
+
+## 2026-11-02 - picasso.md — WCAG 2.2 Level AA Standards, Fixed Regex Errors & Multi-Framework Fix Patterns
+
+- **Target:** `agents/picasso.md`
+- **What was missing:**
+  - **Fatal syntax errors in 5 `rg` commands:** Look-around regexes (`(?!...)`) in Step 2 (`<img(?![^>]*alt=)...>`, `<button(?![^>]*(aria-label)...)...>`, `<input(?![^>]*(aria-label)...)...>`, `placeholder=.*[^>]*(?!id=)`, `onClick(?!...)`) were crashing ripgrep with exit code 2 because ripgrep does not support look-around assertions without PCRE2.
+  - **Only 4 fix patterns:** All examples were React-only plus 1 minimal CSS snippet; zero Vue, Svelte, or native HTML `<dialog>` patterns.
+  - **Zero `# BEFORE` / `# AFTER` structured comments** recognized by standard catalog scanners.
+  - **Weak verification:** Step 4 only ran `npx @axe-core/cli http://localhost:3000` (which fails when no dev server is active) and lacked static a11y linters (`eslint-plugin-jsx-a11y`, `eslint-plugin-vuejs-accessibility`, `stylelint`, `vue-tsc`, `svelte-check`).
+  - **Thin Industry Standards:** Only 3 generic URLs and 4 bullets; lacked specific WCAG 2.2 AA criteria (1.1.1, 1.3.1, 1.3.5, 1.4.3, 1.4.10, 2.1.1, 2.4.1, 2.4.7/2.4.11, 2.5.8, 3.3.1/3.3.2) and framework-specific accessibility guidelines.
+  - **Missing critical UX/A11y checks:** No skip link detection, no touch target size violation scan (< 24px WCAG 2.5.8), no autocomplete attribute verification for user identity fields (WCAG 1.3.5), no check for non-button interactive elements in Vue/Svelte (`@click`, `on:click`).
+- **Improvements applied:**
+  1. **Fixed all broken `rg` commands:** Replaced look-around assertions with robust, portable ripgrep commands using valid regex filters and shell pipes, completely eliminating the exit code 2 crashes.
+  2. **Step 1 expansion:** Added detection for modern UI stacks: React 18/19, Next.js, Remix, Vue 3, Nuxt 3, Svelte/SvelteKit, Astro, Solid, Tailwind (v3/v4), Radix UI, Headless UI, Shadcn, Chakra, Mantine, Material UI, Jinja2/Django templates, Blade/Twig, ESLint a11y plugins, axe-core, pa11y, and motion libraries.
+  3. **Step 2 diagnostic commands overhauled across 8 concrete categories:**
+     - Missing loading/error/empty states (React, Vue, Svelte async hooks)
+     - Missing accessible names (images, icon-only buttons, non-descriptive links)
+     - Missing form labels and autocomplete attributes (WCAG 1.3.1, 1.3.5)
+     - Clickable elements missing keyboard support (React `onClick`, Vue `@click`, Svelte `on:click`)
+     - Focus indicators removed without replacements (`outline: none`, `focus:outline-none`)
+     - Touch target size violations (< 24px WCAG 2.5.8 & mobile 44-48px touch targets)
+     - Responsive breakpoint & reflow traps (missing viewport meta, user zoom blocking, fixed widths > 320px)
+     - Motion without reduced motion preference (`@keyframes`, CSS transitions, Framer Motion)
+  4. **Step 3 elevated with 7 comprehensive, production-grade BEFORE/AFTER fix patterns:**
+     - *Pattern 1 (React TSX):* Complete loading (CLS-preventing skeletons), accessible error alert (`role="alert"` + retry), and empty state.
+     - *Pattern 2 (React TSX):* Accessible icon button with `aria-label`, `type="button"`, `aria-hidden="true"` SVG, visible focus ring, and expanded 44×44px touch hit area via pseudo-element.
+     - *Pattern 3 (React TSX):* Associated form input using `useId()`, `autoComplete`, and `aria-describedby` connecting hints and live error alerts.
+     - *Pattern 4 (HTML5 / React):* Accessible modal dialog leveraging native `<dialog>` element for topmost layer rendering, focus trapping, and native Escape key dismissal.
+     - *Pattern 5 (Vue 3 Composition API):* Accessible accordion / disclosure using `aria-expanded`, `aria-controls`, and keyboard navigation.
+     - *Pattern 6 (HTML / CSS / Tailwind):* Skip to main content link with screen-reader-only styling that reveals on focus, paired with focus-visible styling.
+     - *Pattern 7 (CSS / Tailwind):* Graceful fallback for `prefers-reduced-motion: reduce` stripping physical displacement while retaining subtle visual feedback.
+  5. **Step 4 verification updated with rigorous exit code checks:** Added static a11y linting (`eslint-plugin-jsx-a11y`, `eslint-plugin-vuejs-accessibility`), Stylelint, framework typecheck (`tsc`, `vue-tsc`, `svelte-check`), test suite execution, production build checks, and conditional axe audits with explicit pass/fail/unknown status.
+  6. **Industry Standards completely modernized:** Detailed WCAG 2.2 Level AA criteria breakdown with authoritative citations (`w3.org/WAI/WCAG22/quickref/`, `w3c.github.io/aria-practices/`, `developer.mozilla.org/en-US/docs/Web/Accessibility`, `react.dev`, `vuejs.org`, `m3.material.io`).
+- **Verification:**
+  - Markdown code fences balanced: **PASS** (40 markers — 20 pairs ✅)
+  - All 5 steps present: **PASS** ✅
+  - Industry Standards section: **PASS** ✅
+  - Boundaries & Safety sections: **PASS** ✅
+  - Senior Engineering Standards: **PASS** ✅
+  - Cross-Domain Handoff: **PASS** ✅
+  - Log Format: **PASS** ✅
+  - All `rg` commands executed and verified parse-clean: **PASS** ✅
+  - `git diff --check`: **PASS** (clean, zero whitespace errors) ✅
+  - Line count: **493 → 850** (+357 lines net; 587 insertions, 230 deletions)
