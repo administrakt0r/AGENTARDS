@@ -206,6 +206,66 @@ rg -n "supports?\s|features?\s|includes?\s" --include="*.md" -i 2>/dev/null | he
 rg -n "^##\s+\[" --include="CHANGELOG.md" 2>/dev/null | grep -v "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | head -10
 ```
 
+### Undocumented Environment Variables
+
+```bash
+# Variables used in source but absent from .env.example
+for var in $(rg -oh "[A-Z][A-Z0-9_]{3,}" \
+    --include="*.ts" --include="*.js" --include="*.py" --include="*.go" --include="*.php" \
+    --glob='!node_modules' --glob='!dist' --glob='!vendor' 2>/dev/null \
+    | grep -E "^(process\.env\.|os\.environ|os\.getenv|getenv\()" | \
+    sed "s/process\.env\.//;s/os\.environ\[.//;s/os\.getenv('.//;s/getenv('//" | \
+    sed "s/'.*//;s/\".*//;s/\].*//" | sort -u); do
+  if [ -f .env.example ] && ! grep -q "^${var}=" .env.example 2>/dev/null; then
+    echo "MISSING IN .env.example: $var"
+  fi
+done | head -20
+
+# Simpler pattern: just grep for process.env / os.environ references
+rg -oh "process\.env\.([A-Z][A-Z0-9_]+)" --include="*.ts" --include="*.js" \
+  --glob='!node_modules' --glob='!dist' -r '$1' 2>/dev/null | sort -u | while read var; do
+  [ -f .env.example ] && ! grep -q "^${var}=" .env.example 2>/dev/null && \
+    echo "ENV VAR MISSING FROM .env.example: $var"
+done | head -20
+
+rg -oh "os\.environ(?:\.get)?\(['\"]([A-Z][A-Z0-9_]+)" --include="*.py" -r '$1' \
+  2>/dev/null | sort -u | while read var; do
+  [ -f .env.example ] && ! grep -q "^${var}=" .env.example 2>/dev/null && \
+    echo "ENV VAR MISSING FROM .env.example: $var"
+done | head -20
+```
+
+### CHANGELOG Integrity
+
+```bash
+# Entries without ISO date
+rg -n "^## \[" CHANGELOG.md 2>/dev/null | grep -v "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | head -10
+
+# Version links at the bottom of CHANGELOG
+rg -n "^\[[0-9]" CHANGELOG.md 2>/dev/null | head -10
+# Missing version link: look for ## [X.Y.Z] without a corresponding [X.Y.Z]: https... line
+rg -oh "\[([0-9]+\.[0-9]+\.[0-9]+)\]" CHANGELOG.md 2>/dev/null | sort -u | while read ver; do
+  grep -q "^${ver}:" CHANGELOG.md 2>/dev/null || echo "MISSING VERSION LINK: $ver"
+done | head -10
+
+# Rust doc-test coverage: public fns without an `# Examples` block in their doc comment
+rg -n "^pub (fn|struct|enum|trait)" --include="*.rs" \
+  --glob='!target' 2>/dev/null | while IFS=: read -r file line content; do
+  # Read the preceding comment block (up to 15 lines back)
+  block=$(sed -n "$((line > 15 ? line - 15 : 1)),$((line - 1))p" "$file" 2>/dev/null)
+  if echo "$block" | grep -q "^///"; then
+    if ! echo "$block" | grep -q "# Examples"; then
+      echo "MISSING EXAMPLE IN RUSTDOC: $file:$line"
+    fi
+  fi
+done | head -20
+
+# Go: exported funcs/types missing runnable example functions
+if [ -f go.mod ]; then
+  go doc -all ./... 2>/dev/null | grep -B2 "func [A-Z]" | grep -v "^--$" | head -40 || true
+fi
+```
+
 ## Step 3: Fix What You Find
 
 ### Fix Pattern: Update Broken Command Reference in README
@@ -331,6 +391,167 @@ def retry(fn, max_attempts: int = 3, delay: float = 1.0):
 6. **Open a pull request** against `main` with a description of what changed and why.
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local environment setup.
+```
+
+### Fix Pattern: Add Missing Go Doc Comment (exported func/type)
+
+```go
+// BEFORE — exported function with no doc comment; `go doc` and IDEs show nothing
+func PaginateResults[T any](items []T, page, pageSize int) ([]T, int) {
+	if page < 1 {
+		page = 1
+	}
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[start:end], len(items)
+}
+
+// AFTER — Go doc convention: first sentence is the summary, begins with the func name
+// PaginateResults returns a single page of items from the provided slice along
+// with the total item count. Page is 1-based; values less than 1 are clamped to 1.
+// pageSize must be greater than 0.
+//
+// Example:
+//
+//	page, total := PaginateResults(items, 2, 10)
+func PaginateResults[T any](items []T, page, pageSize int) ([]T, int) {
+	if page < 1 {
+		page = 1
+	}
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[start:end], len(items)
+}
+```
+
+### Fix Pattern: Add Missing Rust Doc Comment (public item)
+
+```rust
+// BEFORE — public function, no doc comment; `cargo doc` produces empty page
+pub fn retry<F, T, E>(mut f: F, max_attempts: u32, base_delay_ms: u64) -> Result<T, E>
+where
+    F: FnMut() -> Result<T, E>,
+{
+    for attempt in 0..max_attempts {
+        match f() {
+            Ok(v) => return Ok(v),
+            Err(e) if attempt + 1 == max_attempts => return Err(e),
+            Err(_) => std::thread::sleep(
+                std::time::Duration::from_millis(base_delay_ms * 2u64.pow(attempt)),
+            ),
+        }
+    }
+    unreachable!()
+}
+
+// AFTER — rustdoc: summary line, parameters, errors, example in a doc-test block
+/// Retries a fallible closure up to `max_attempts` times with exponential back-off.
+///
+/// # Arguments
+///
+/// * `f` – A mutable closure returning `Result<T, E>`.
+/// * `max_attempts` – Total attempts before propagating the last error. Must be ≥ 1.
+/// * `base_delay_ms` – Initial delay in milliseconds; doubled on each retry.
+///
+/// # Errors
+///
+/// Returns `Err` with the last error from `f` if all attempts are exhausted.
+///
+/// # Examples
+///
+/// ```
+/// let mut count = 0;
+/// let result: Result<i32, &str> = retry(|| {
+///     count += 1;
+///     if count < 3 { Err("not yet") } else { Ok(42) }
+/// }, 5, 10);
+/// assert_eq!(result, Ok(42));
+/// ```
+pub fn retry<F, T, E>(mut f: F, max_attempts: u32, base_delay_ms: u64) -> Result<T, E>
+where
+    F: FnMut() -> Result<T, E>,
+{
+    for attempt in 0..max_attempts {
+        match f() {
+            Ok(v) => return Ok(v),
+            Err(e) if attempt + 1 == max_attempts => return Err(e),
+            Err(_) => std::thread::sleep(
+                std::time::Duration::from_millis(base_delay_ms * 2u64.pow(attempt)),
+            ),
+        }
+    }
+    unreachable!()
+}
+```
+
+### Fix Pattern: Document Missing `.env.example` Variables
+
+```bash
+# BEFORE — .env.example is missing keys referenced in docs / source
+# .env.example (incomplete)
+DATABASE_URL=postgresql://localhost:5432/mydb
+SECRET_KEY=change-me
+
+# Source references REDIS_URL, SMTP_HOST, SMTP_PORT, S3_BUCKET — none in .env.example
+
+# AFTER — every variable in source is in .env.example with a safe placeholder and comment
+# .env.example
+# --- Database ---
+DATABASE_URL=postgresql://localhost:5432/mydb    # Postgres connection string
+
+# --- Auth ---
+SECRET_KEY=change-me-in-production               # JWT / session signing key; min 32 chars
+JWT_EXPIRES_IN=7d                                # Token lifetime (ms/s/m/h/d suffix)
+
+# --- Cache ---
+REDIS_URL=redis://localhost:6379                 # Redis connection URL
+
+# --- Email ---
+SMTP_HOST=smtp.example.com                       # SMTP server hostname
+SMTP_PORT=587                                    # 587 (STARTTLS) or 465 (TLS)
+SMTP_USER=no-reply@example.com
+SMTP_PASS=                                       # Leave blank for local; set in CI/CD
+
+# --- Storage ---
+S3_BUCKET=my-app-assets                          # S3 or compatible bucket name
+S3_REGION=us-east-1
+AWS_ACCESS_KEY_ID=                               # IAM key — never commit real credentials
+AWS_SECRET_ACCESS_KEY=
+```
+
+### Fix Pattern: Repair Malformed CHANGELOG Entry
+
+```markdown
+<!-- BEFORE — missing date, version not wrapped in link, no categorization -->
+## [Unreleased]
+
+## 1.4.0
+- Add retry logic
+- Fix pagination bug
+- Remove legacy auth endpoint
+
+<!-- AFTER — Keep-a-Changelog 1.0.0 format: version link, ISO date, typed sections -->
+## [Unreleased]
+
+## [1.4.0] - 2026-10-15
+
+### Added
+- Exponential back-off retry helper (`src/utils/retry.ts`) with configurable max attempts and base delay.
+
+### Fixed
+- Off-by-one error in `PaginateResults` when `page * pageSize` exceeds total item count.
+
+### Removed
+- `POST /auth/legacy` endpoint deprecated in v1.2.0 — use `POST /auth/token` instead.
+
+[1.4.0]: https://github.com/org/repo/compare/v1.3.0...v1.4.0
+[Unreleased]: https://github.com/org/repo/compare/v1.4.0...HEAD
 ```
 
 ## Step 4: Verify
@@ -460,12 +681,19 @@ If a finding fits more than one domain, pick the most specific owner. Never dupl
 
 ## Industry Standards (verified 2026-10 via Context7)
 
-Sources: `diataxis.fr`, `www.writethedocs.org/guide/writing/docs-principles/`, `commonmark.org/help/`
+Sources: [`diataxis.fr`](https://diataxis.fr), [`writethedocs.org`](https://www.writethedocs.org/guide/writing/docs-principles/), [`commonmark.org`](https://commonmark.org/help/), [`keepachangelog.com`](https://keepachangelog.com/en/1.1.0/), [`conventionalcommits.org`](https://www.conventionalcommits.org/en/v1.0.0/)
 
-- A documented command, flag, path, or environment variable exists in the repository.
-- Keep tutorial, how-to, reference, and explanation apart when the docs already use that split.
-- Relative links resolve to files in the tree. Generated API docs follow the generator the project already runs.
-- Do not invent a version, port, or setup step to fill a gap. Mark it unknown.
+- **Accuracy over completeness.** A documented command, flag, path, or environment variable must exist in the repository. Never invent a version, port, or setup step to fill a gap; mark it unknown.
+- **Every `.env` key in source must appear in `.env.example`** with a safe placeholder and a comment explaining the value format. Missing keys are silent production failures.
+- **Go doc convention (`go doc`/`godoc`):** first sentence starts with the exported name and is the one-line summary. Examples go in `// Example` functions or `Example` in doc comments; they are run by `go test`. Source: [`pkg.go.dev/cmd/doc`](https://pkg.go.dev/cmd/doc).
+- **Rust doc convention (`rustdoc`):** public items use `///` line comments. Include `# Examples` with runnable doc-tests (`cargo test --doc`). Source: [`doc.rust-lang.org/rustdoc`](https://doc.rust-lang.org/rustdoc/what-is-rustdoc.html).
+- **Python docstring style:** Google, NumPy, or Sphinx — pick what the project already uses. Sections: summary line, blank line, `Args:`, `Returns:`, `Raises:`, `Example:`. Source: [`google.github.io/styleguide/pyguide`](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings).
+- **PHP docblock standard (PHPDoc):** `@param`, `@return`, `@throws` on all public methods; type hints shadow `@param` when redundant. Source: [`phpdoc.org`](https://phpdoc.org/docs/latest/index.html).
+- **Java Javadoc:** first sentence ends at the first `.` and becomes the summary in the index. `@param`, `@return`, `@throws` required on all public APIs. Source: [`docs.oracle.com/javase/8/docs/technotes/tools/unix/javadoc.html`](https://docs.oracle.com/javase/8/docs/technotes/tools/unix/javadoc.html).
+- **CHANGELOG format (Keep a Changelog 1.0.0):** `## [X.Y.Z] - YYYY-MM-DD`, sections `Added/Changed/Deprecated/Removed/Fixed/Security`. Version headers link to the diff. Source: [`keepachangelog.com`](https://keepachangelog.com/en/1.1.0/).
+- Keep tutorial, how-to, reference, and explanation sections separate (Diátaxis) when the docs already use that split. Do not collapse them.
+- Relative links must resolve to files present in the tree. Generated API docs follow the generator the project already runs; do not swap generators.
+- **README must have four sections before any PR is merged:** install, run/usage, test, and contributing. Missing any one of them makes the project non-contributor-friendly.
 ## Boundaries
 ✅ **Always do:** verify claims against code/config; check links resolve; use existing voice/format; make repeatable updates; report stale facts honestly
 ⚠️ **Assess before changing:** changing public product claims; legal/security guidance; generated artifacts; version policy

@@ -87,3 +87,20 @@ Read this file before running Agenticus Improvicus. Append only useful run summa
   - Log-First Protocol present ✅
   - `git diff --check`: clean (no trailing whitespace) ✅
 - **Line count:** 480 → 717 (+237 lines net, 244 inserted, 7 deleted)
+
+## 2026-11-01 - Docs Prompt Elevation
+- **Target:** `agents/docs.md`
+- **What was missing:**
+  - Step 3 fix examples covered only TypeScript + Python; Go, Rust, PHP/Java all had Step 2 detection but no paired fix pattern.
+  - No fix pattern for `.env.example` gaps (Step 2 detected undocumented env vars but Step 3 left agents without a concrete template to follow).
+  - No CHANGELOG repair pattern despite Step 2 detecting malformed entries.
+  - Industry Standards block was 4 thin bullets with no direct URLs and missing Rust/Go/PHP/Java/CHANGELOG citation anchors.
+  - Step 2 had no detection for Rust doc-test `# Examples` coverage or `.env.example` key diffing using ripgrep.
+- **Improvements applied:**
+  1. **New fix pattern — Go doc comment:** realistic before/after for an exported generic function showing Go doc conventions (`go doc`, first sentence starts with the name, runnable `Example` in doc comment).
+  2. **New fix pattern — Rust rustdoc:** before/after for a public `retry` function with `/// `, `# Arguments`, `# Errors`, `# Examples` doc-test block, and a note to run `cargo test --doc`.
+  3. **New fix pattern — `.env.example` documentation:** before/after showing an incomplete `.env.example` → a complete one with every key, safe placeholder, and inline comment for value format.
+  4. **New fix pattern — CHANGELOG repair:** before/after converting a bare version header to Keep-a-Changelog 1.0.0 format with ISO date, typed sections (Added/Fixed/Removed), and version diff links.
+  5. **New Step 2 detection sections — Undocumented Environment Variables and CHANGELOG Integrity:** ripgrep commands to diff `process.env.*` / `os.environ` references against `.env.example`, detect missing version links, and scan Rust doc-tests for missing `# Examples` blocks.
+  6. **Expanded Industry Standards block:** 4 bullets → 11 with direct hyperlinked sources for Go (`pkg.go.dev`), Rust (`doc.rust-lang.org/rustdoc`), Python (Google style guide), PHP (`phpdoc.org`), Java (Oracle Javadoc), Keep-a-Changelog, and Conventional Commits.
+- **Verification:** Code fences balanced (40/40), all 5 steps present, Industry Standards ✓, Boundaries ✓, Safety ✓. Line count: 505 → 734.
