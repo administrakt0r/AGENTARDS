@@ -104,3 +104,35 @@ Read this file before running Agenticus Improvicus. Append only useful run summa
   5. **New Step 2 detection sections — Undocumented Environment Variables and CHANGELOG Integrity:** ripgrep commands to diff `process.env.*` / `os.environ` references against `.env.example`, detect missing version links, and scan Rust doc-tests for missing `# Examples` blocks.
   6. **Expanded Industry Standards block:** 4 bullets → 11 with direct hyperlinked sources for Go (`pkg.go.dev`), Rust (`doc.rust-lang.org/rustdoc`), Python (Google style guide), PHP (`phpdoc.org`), Java (Oracle Javadoc), Keep-a-Changelog, and Conventional Commits.
 - **Verification:** Code fences balanced (40/40), all 5 steps present, Industry Standards ✓, Boundaries ✓, Safety ✓. Line count: 505 → 734.
+
+## 2026-11-01 - Testing Agent Comprehensive Elevation
+- **Target:** `agents/testing.md`
+- **Selection rationale:** Only BASE-level agent with 0 before/after fix patterns for Go, Python, and Rust — Step 3 was entirely JS/TS-centric despite Step 2 having multi-language detection. Industry Standards block had 4 thin bullets with no version pinning. No Go table-driven test patterns (the canonical Go idiom), no Python `pytest.mark.parametrize` patterns, no Rust `#[cfg(test)]` patterns. Copy-paste test anti-pattern detection was entirely absent from Step 2.
+- **What was missing:**
+  1. 0 fix patterns for Go, Python, or Rust — Step 3 covered only TypeScript/Jest
+  2. No Go table-driven test pattern (canonical Go testing idiom)
+  3. No Python `pytest.mark.parametrize` pattern (eliminates copy-paste test bodies)
+  4. No Python session-scoped fixture pattern (expensive shared DB setup)
+  5. No Rust `#[cfg(test)] mod tests` pattern with `#[should_panic]`
+  6. No Vitest 2.x coverage threshold configuration example
+  7. No `rg` commands to detect copy-paste test anti-patterns or missing table-driven structure
+  8. No Go `t.Sleep` / non-parallel test detection in flaky pattern section
+  9. No Rust `thread::sleep` in test module detection
+  10. Industry Standards: 4 generic bullets, no version pinning, no API-specific details, missing Vitest 2.x / pytest 8.x / cargo nextest references
+- **Improvements applied:**
+  1. Replaced 5 existing TS-only fix patterns with 10 fully annotated patterns spanning 4 languages: TypeScript (Vitest), TypeScript (Jest), Go (table-driven), Python (parametrize), Python (session fixtures), Rust (`#[cfg(test)]`), and Vitest coverage threshold config
+  2. Rewrote all TS patterns to use Vitest v2 idioms (`vi.spyOn`, `vi.useFakeTimers`, `vi.restoreAllMocks`) while preserving Jest examples for backward compatibility
+  3. Added Go table-driven test pattern with `t.Parallel()`, range-var capture, and `wantErr` idiom
+  4. Added Python `@pytest.mark.parametrize` pattern with 6 test cases replacing 3 copy-paste functions
+  5. Added Python session-scoped fixture pattern with savepoint rollback for DB isolation
+  6. Added Rust `#[cfg(test)] mod tests` with `#[should_panic(expected = "...")]` and 5 concrete sub-tests
+  7. Added Vitest coverage config with `provider`, `reporter`, `thresholds` (lines/branches/functions/statements)
+  8. Added missing Rust `#[test]` coverage detection to Step 2 Missing Tests section
+  9. Added Go `t.Sleep` and non-parallel test detection to Step 2 Flaky Patterns section
+  10. Added new Step 2 subsection "Anti-Patterns: Copy-Paste Tests and Missing Table-Driven Structure" with 5 `rg` commands (Python parametrize candidate detection, Go non-table pattern, JS duplicate `it()` labels, coverage threshold enforcement check)
+  11. Expanded Industry Standards: 4 bullets → 10 with Vitest 2.x coverage API, Jest 29+ `clearMocks` config, pytest 8.x `scope="session"` fixtures, Go `testify/require` vs `assert`, Rust `cargo nextest` / `cargo llvm-cov`, MSW v2 Fetch API notes, behavior-first naming guidance
+  12. Added 3 new Senior Engineering Standards bullets: Go table-driven idiom, Python parametrize threshold, Rust co-located test module convention
+- **Verification:** Markdown code fences balanced (42 markers — 21 pairs ✅), all 5 required steps present ✅, Industry Standards section present ✅, Boundaries ✅, Safety ✅, Senior Engineering Standards ✅, Log Format ✅, Cross-Domain Handoff ✅, `git diff --check` clean ✅.
+- **rg command count:** 15 → 24 (+9)
+- **Fix pattern count:** 5 (TS-only) → 10 (4 languages)
+- **Line count:** 512 → 804 (+292 lines net)

@@ -62,7 +62,7 @@ Missing tests, weak assertions, flaky patterns, and missing test categories.
 
 ```bash
 # Find source files without corresponding test files
-find . -maxdepth 5 -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) \
+find . -maxdepth 5 -type f \\( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \\) \
   ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/.next/*" \
   ! -name "*.test.*" ! -name "*.spec.*" ! -name "*.d.ts" ! -name "*.config.*" \
   2>/dev/null | while IFS= read -r file; do
@@ -87,6 +87,11 @@ find . -maxdepth 5 -name "*.py" ! -name "test_*" ! -name "*_test.py" ! -name "co
     echo "NO TEST: $file"
   fi
 done | head -20
+
+# Rust: public functions without #[test] coverage
+rg -n "^pub fn " --include="*.rs" --glob="!*_test.rs" --glob="!*/tests/*" 2>/dev/null | head -20
+rg -n "#\[test\]" --include="*.rs" 2>/dev/null | wc -l
+# If pub fn count >> test count, coverage is likely thin
 ```
 
 ### Weak Assertions
@@ -129,7 +134,7 @@ rg -n "Math\.random|random\.random|randint|shuffle" --include="*.test.*" --inclu
 
 # Time-dependent tests (not using fake timers)
 rg -n "Date\.now|new Date|time\.time|datetime\.now" --include="*.test.*" --include="*.spec.*" --include="test_*" 2>/dev/null | while IFS=: read -r file line content; do
-  if ! rg -q "useFakeTimers\|jest\.setSystemTime\|MockDateTime\|freezegun\|time\.Now =\|clock\." "$file" 2>/dev/null; then
+  if ! rg -q "useFakeTimers|jest\.setSystemTime|MockDateTime|freezegun|time\.Now =|clock\." "$file" 2>/dev/null; then
     echo "REAL TIME IN TEST: $file:$line (use fake timers)"
   fi
 done | head -10
@@ -137,11 +142,28 @@ done | head -10
 # Order-dependent tests (global state mutation)
 rg -n "beforeAll|beforeEach|global\." --include="*.test.*" --include="*.spec.*" 2>/dev/null | head -20
 
-# External service calls not mocked
-rg -n "fetch\(|axios\.|http\.get|requests\." --include="*.test.*" --include="*.spec.*" --include="test_*" 2>/dev/null | grep -v "mock\|Mock\|stub\|Stub\|spy\|Spy\|nock\|msw" | head -10
+# External service calls not mocked (JS/TS and Python)
+rg -n "fetch\(|axios\.|http\.get|requests\." --include="*.test.*" --include="*.spec.*" --include="test_*" 2>/dev/null \
+  | grep -v "mock\|Mock\|stub\|Stub\|spy\|Spy\|nock\|msw\|responses\|httpretty" | head -10
 
 # sleep/setTimeout with real delays in tests (slow and flaky)
-rg -n "setTimeout\|sleep\|time\.Sleep" --include="*.test.*" --include="*.spec.*" 2>/dev/null | grep -v "fake\|mock\|Mock\|useFakeTimers" | head -10
+rg -n "setTimeout|sleep|time\.Sleep" --include="*.test.*" --include="*.spec.*" 2>/dev/null \
+  | grep -v "fake\|mock\|Mock\|useFakeTimers" | head -10
+
+# Go: t.Sleep in tests (always a flake signal)
+rg -n "time\.Sleep" --include="*_test.go" --glob="!vendor/**" 2>/dev/null | head -10
+
+# Go: tests that don't call t.Parallel() (serial tests slow down -count runs)
+rg -n "^func Test" --include="*_test.go" --glob="!vendor/**" 2>/dev/null | while IFS=: read -r file line content; do
+  end=$((line + 5))
+  ctx=$(sed -n "${line},${end}p" "$file" 2>/dev/null)
+  if ! echo "$ctx" | grep -q "t\.Parallel()"; then
+    echo "NON-PARALLEL TEST: $file:$line"
+  fi
+done | head -20
+
+# Rust: std::thread::sleep in test modules (real delay = flaky)
+rg -n "thread::sleep" --include="*.rs" -A2 -B2 2>/dev/null | grep -B4 "#\[test\]" | head -20
 ```
 
 ### Mock/Spy Pollution
@@ -197,58 +219,94 @@ rg -n 'WP_UnitTestCase|Brain\\Monkey|yoast/phpunit-polyfills' --glob '*.php' --g
 
 Add tests with the harness the repository already has. A plugin that uses `WP_UnitTestCase` gets a test that boots WordPress. A plain PHPUnit or Pest suite gets a unit test around the pure function, with Brain Monkey only when the suite already loads it. Cover one privileged failure: missing nonce, missing capability, or a rejected `prepare` input. Do not add a new test framework to a theme or plugin that has none. Syntax-check with `php -l` and report the missing suite as **Unknown**.
 
+### Anti-Patterns: Copy-Paste Tests and Missing Table-Driven Structure
+
+```bash
+# Python: repeated test functions that should be parametrized
+# Look for test functions with near-identical names (test_X_case1, test_X_case2)
+rg -n "^def test_" --include="test_*.py" --include="*_test.py" 2>/dev/null \
+  | sed 's/:[0-9]*://' | sort | awk -F'_' 'NF>3' | head -20
+
+# Python: missing @pytest.mark.parametrize (many similar test_ functions in same file)
+find . -maxdepth 5 \( -name "test_*.py" -o -name "*_test.py" \) ! -path "*/node_modules/*" 2>/dev/null \
+  | while IFS= read -r f; do
+    count=$(rg -c "^def test_" "$f" 2>/dev/null || echo 0)
+    param=$(rg -c "parametrize" "$f" 2>/dev/null || echo 0)
+    if [ "$count" -gt 6 ] && [ "$param" -eq 0 ]; then
+      echo "PARAMETRIZE CANDIDATE ($count tests, 0 parametrize): $f"
+    fi
+  done | head -10
+
+# Go: non-table-driven tests (repeated TestFoo_Case1, TestFoo_Case2 pattern)
+rg -n "^func Test" --include="*_test.go" --glob="!vendor/**" 2>/dev/null \
+  | sed 's/_[A-Z][a-zA-Z0-9]*//' | sort | uniq -d | head -10
+
+# JS/TS: copy-pasted describe blocks (same test label repeated in multiple files)
+rg -n "it\('should " --include="*.test.*" --include="*.spec.*" 2>/dev/null \
+  | sed "s/.*it('//" | sort | uniq -c | sort -rn | awk '$1>2' | head -10
+
+# Coverage config: check if coverage thresholds are enforced
+rg -n "thresholds|coverageThreshold|fail.under|cov.fail" \
+  vitest.config.ts vitest.config.js jest.config.ts jest.config.js \
+  setup.cfg pyproject.toml 2>/dev/null | head -20
+[ $? -ne 0 ] && echo "WARNING: No coverage threshold enforcement detected"
+```
+
 ## Step 3: Fix What You Find
 
-### Add Missing Test Files
+### Fix Pattern: Add Missing Test Files (TypeScript / Vitest)
 
 ```typescript
-// Create test file: src/utils/processor.test.ts
-// Cover: happy path, error paths, edge cases, boundary values
+// BEFORE — no test file exists for src/utils/processor.ts
+// The function is called in production but never tested
 
+// AFTER — Create: src/utils/processor.test.ts
+// Cover: happy path, error paths, edge cases, boundary values
+import { describe, it, expect } from 'vitest';
 import { process } from './processor';
 
 describe('process', () => {
   // Happy path
-  it('should parse comma-separated values', () => {
+  it('parses comma-separated values', () => {
     expect(process('a,b,c')).toEqual(['a', 'b', 'c']);
   });
 
-  // Edge cases
-  it('should handle empty string input', () => {
+  // Edge cases — always test the boundaries explicitly
+  it('returns empty array for empty string', () => {
     expect(process('')).toEqual([]);
   });
 
-  it('should trim whitespace around values', () => {
+  it('trims whitespace around values', () => {
     expect(process(' a , b ')).toEqual(['a', 'b']);
   });
 
-  it('should handle single-item input', () => {
+  it('handles single-item input', () => {
     expect(process('solo')).toEqual(['solo']);
   });
 
-  // Error paths
-  it('should throw on null input', () => {
-    expect(() => process(null as any)).toThrow('Input must be a string');
+  // Error paths — each catch/throw in the implementation needs coverage
+  it('throws on null input', () => {
+    expect(() => process(null as unknown as string)).toThrow('Input must be a string');
   });
 
-  it('should throw on undefined input', () => {
-    expect(() => process(undefined as any)).toThrow('Input must be a string');
+  it('throws on undefined input', () => {
+    expect(() => process(undefined as unknown as string)).toThrow('Input must be a string');
   });
 });
 ```
 
-### Fix Weak Assertions
+### Fix Pattern: Weak Assertions → Strong Shape Assertions (TypeScript)
 
 ```typescript
-// Before (weak — passes even if API returns garbage)
+// BEFORE — weak: passes even if the API returns garbage or crashes
 it('should return data', () => {
   const result = fetchData();
-  expect(result).toBeTruthy();
+  expect(result).toBeTruthy();  // ❌ truthy covers null, 0, '', undefined only
 });
 
-// After (strong — validates shape, types, and semantics)
-it('should return data with correct shape', async () => {
-  expect.assertions(1); // ensures the assertion runs even in async context
+// AFTER — strong: validates shape, types, and semantics
+it('returns data with correct shape', async () => {
+  expect.assertions(1); // ✅ guards against silent async short-circuit
   const result = await fetchData();
   expect(result).toEqual({
     id: expect.any(Number),
@@ -256,88 +314,310 @@ it('should return data with correct shape', async () => {
     createdAt: expect.any(String),
     items: expect.arrayContaining([
       expect.objectContaining({ id: expect.any(Number), label: expect.any(String) })
-    ])
+    ]),
   });
 });
 ```
 
-### Fix Flaky Time-Dependent Tests
+### Fix Pattern: Flaky Time-Dependent Tests → Fake Timers (TypeScript)
 
 ```typescript
-// Before (flaky — depends on system clock)
+// BEFORE — flaky: depends on real wall-clock time; races on slow CI
 it('should record timestamp', () => {
   const now = Date.now();
-  expect(createRecord().timestamp).toBeGreaterThan(now);
+  expect(createRecord().timestamp).toBeGreaterThan(now); // ❌ racy
 });
 
-// After (deterministic with fake timers)
-it('should record timestamp at creation time', () => {
-  const fixedTime = new Date('2024-01-15T12:00:00Z').getTime();
-  jest.useFakeTimers({ now: fixedTime });
-  try {
+// AFTER — deterministic: Vitest fake timers pin the clock
+import { vi, describe, it, expect, afterEach } from 'vitest';
+
+describe('createRecord', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('records timestamp at creation time', () => {
+    const fixedTime = new Date('2024-01-15T12:00:00Z').getTime();
+    vi.useFakeTimers({ now: fixedTime });
     const record = createRecord();
-    expect(record.timestamp).toBe(fixedTime);
-  } finally {
-    jest.useRealTimers();
-  }
+    expect(record.timestamp).toBe(fixedTime); // ✅ deterministic
+  });
 });
 ```
 
-### Add Error Case Tests
+### Fix Pattern: Error Case Tests with expect.assertions (TypeScript)
 
 ```typescript
-// Add error case tests for existing functions
+// BEFORE — only the happy path is tested; error branches have 0 coverage
 describe('fetchUser', () => {
-  beforeEach(() => jest.clearAllMocks()); // prevent mock pollution
+  it('should return user', async () => {
+    const user = await fetchUser(1);
+    expect(user.name).toBe('Alice');
+  });
+});
 
-  it('should handle network error', async () => {
+// AFTER — happy path + 3 error cases; mock cleaned in afterEach
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+describe('fetchUser', () => {
+  afterEach(() => vi.restoreAllMocks()); // ✅ spy teardown prevents pollution
+
+  it('returns user on success', async () => {
     expect.assertions(1);
-    mockFetch.mockRejectedValueOnce(new Error('Network error'));
-    await expect(fetchUser(1)).rejects.toThrow('Network error');
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: 1, name: 'Alice' }), { status: 200 })
+    );
+    await expect(fetchUser(1)).resolves.toMatchObject({ id: 1, name: 'Alice' });
   });
 
-  it('should handle 404 response', async () => {
+  it('throws on network error', async () => {
     expect.assertions(1);
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+    vi.spyOn(global, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(fetchUser(1)).rejects.toThrow('Failed to fetch');
+  });
+
+  it('throws on 404 response', async () => {
+    expect.assertions(1);
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce(
+      new Response('Not Found', { status: 404 })
+    );
     await expect(fetchUser(999)).rejects.toThrow('User not found');
   });
 
-  it('should handle malformed JSON response', async () => {
+  it('throws on malformed JSON', async () => {
     expect.assertions(1);
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.reject(new SyntaxError('Unexpected token'))
-    });
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce(
+      new Response('broken{{json', { status: 200 })
+    );
     await expect(fetchUser(1)).rejects.toThrow();
   });
 });
 ```
 
-### Fix Mock Pollution
+### Fix Pattern: Mock Pollution → Isolated Spy Teardown (TypeScript / Jest)
 
 ```typescript
-// Before (mocks leak between tests)
+// BEFORE — spy persists: later tests see a mock they didn't set up
 describe('UserService', () => {
   it('should call API', () => {
-    const spy = jest.spyOn(api, 'get');
+    const spy = jest.spyOn(api, 'get'); // ❌ never restored
     userService.fetchUser(1);
     expect(spy).toHaveBeenCalled();
   });
 });
 
-// After (clean teardown in afterEach)
+// AFTER — restoreAllMocks in afterEach guarantees isolation
 describe('UserService', () => {
   afterEach(() => {
-    jest.restoreAllMocks(); // removes all spies, restores originals
-    jest.clearAllMocks();   // clears call history
+    jest.restoreAllMocks(); // removes spies, restores original implementations
+    jest.clearAllMocks();   // clears call counts and return values
   });
 
-  it('should call GET /users/:id with correct id', async () => {
+  it('calls GET /users/:id with correct id', async () => {
     expect.assertions(1);
     const spy = jest.spyOn(api, 'get').mockResolvedValueOnce({ id: 1, name: 'Alice' });
     await userService.fetchUser(1);
     expect(spy).toHaveBeenCalledWith('/users/1');
   });
+});
+```
+
+### Fix Pattern: Go Table-Driven Tests (canonical Go idiom)
+
+```go
+// BEFORE — repeated test functions, no shared structure; hard to extend
+func TestDivideHappy(t *testing.T) {
+    result, err := Divide(10, 2)
+    if err != nil { t.Fatalf("unexpected error: %v", err) }
+    if result != 5 { t.Errorf("want 5, got %v", result) }
+}
+func TestDivideByZero(t *testing.T) {
+    _, err := Divide(10, 0)
+    if err == nil { t.Error("expected error for division by zero") }
+}
+
+// AFTER — table-driven: add cases by adding rows, no new functions needed
+func TestDivide(t *testing.T) {
+    t.Parallel()
+    tests := []struct {
+        name    string
+        a, b    float64
+        want    float64
+        wantErr bool
+    }{
+        {name: "positive integers",  a: 10, b: 2,  want: 5,   wantErr: false},
+        {name: "negative dividend",  a: -9, b: 3,  want: -3,  wantErr: false},
+        {name: "fractional result",  a: 1,  b: 3,  want: 1.0/3, wantErr: false},
+        {name: "divide by zero",     a: 10, b: 0,  wantErr: true},
+    }
+    for _, tc := range tests {
+        tc := tc // capture range var for parallel sub-tests
+        t.Run(tc.name, func(t *testing.T) {
+            t.Parallel()
+            got, err := Divide(tc.a, tc.b)
+            if (err != nil) != tc.wantErr {
+                t.Fatalf("Divide(%v, %v) error = %v, wantErr %v", tc.a, tc.b, err, tc.wantErr)
+            }
+            if !tc.wantErr && got != tc.want {
+                t.Errorf("Divide(%v, %v) = %v, want %v", tc.a, tc.b, got, tc.want)
+            }
+        })
+    }
+}
+```
+
+### Fix Pattern: Python pytest.mark.parametrize (replace copy-paste tests)
+
+```python
+# BEFORE — copy-paste test functions; adding a case requires a new function
+def test_slugify_basic():
+    assert slugify("Hello World") == "hello-world"
+
+def test_slugify_special_chars():
+    assert slugify("Héllo Wörld") == "hello-world"
+
+def test_slugify_empty():
+    assert slugify("") == ""
+
+# AFTER — parametrize: add a row, not a function; 0 duplication
+import pytest
+
+@pytest.mark.parametrize("text,expected", [
+    ("Hello World",   "hello-world"),   # spaces become hyphens
+    ("Héllo Wörld",   "hello-world"),   # diacritics stripped
+    ("",              ""),              # empty input
+    ("   trailing  ", "trailing"),      # leading/trailing whitespace
+    ("a--b",          "a-b"),           # consecutive hyphens collapsed
+    (None,            pytest.raises(TypeError)),  # None raises TypeError
+])
+def test_slugify(text, expected):
+    if isinstance(expected, type) or callable(getattr(expected, '__enter__', None)):
+        with expected:
+            slugify(text)
+    else:
+        assert slugify(text) == expected
+```
+
+### Fix Pattern: Python Fixture Scope — avoid repeated expensive setup
+
+```python
+# BEFORE — database connection opened and closed for every single test (slow)
+def test_user_insert():
+    db = DatabaseConnection(TEST_DSN)   # ❌ new connection per test
+    db.execute("INSERT INTO users ...")
+    db.close()
+
+def test_user_select():
+    db = DatabaseConnection(TEST_DSN)   # ❌ again
+    result = db.query("SELECT * FROM users")
+    db.close()
+
+# AFTER — session-scoped fixture: one connection for the entire test session
+import pytest
+
+@pytest.fixture(scope="session")
+def db():
+    """One connection shared across all tests; rolled back after the session."""
+    conn = DatabaseConnection(TEST_DSN)
+    conn.begin()
+    yield conn
+    conn.rollback()   # ✅ no test data leaks into the next run
+    conn.close()
+
+@pytest.fixture(autouse=True)
+def transaction(db):
+    """Wrap each test in a savepoint so mutations are automatically undone."""
+    db.execute("SAVEPOINT test_savepoint")
+    yield
+    db.execute("ROLLBACK TO SAVEPOINT test_savepoint")
+
+def test_user_insert(db):
+    db.execute("INSERT INTO users (name) VALUES ('Alice')")
+    row = db.query_one("SELECT name FROM users WHERE name='Alice'")
+    assert row["name"] == "Alice"   # ✅ rolled back after this test
+
+def test_user_select(db):
+    # previous test's insert is already rolled back — isolation guaranteed
+    rows = db.query("SELECT * FROM users")
+    assert rows == []
+```
+
+### Fix Pattern: Rust Unit Test Module (in-module `#[cfg(test)]`)
+
+```rust
+// BEFORE — no tests; the function is exported but never verified
+pub fn clamp(value: i32, min: i32, max: i32) -> i32 {
+    if value < min { min } else if value > max { max } else { value }
+}
+
+// AFTER — co-located test module; cargo test discovers it automatically
+pub fn clamp(value: i32, min: i32, max: i32) -> i32 {
+    assert!(min <= max, "min must be <= max");
+    value.clamp(min, max)
+}
+
+#[cfg(test)]   // ✅ compiled only for test builds; zero production overhead
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clamps_below_min() {
+        assert_eq!(clamp(-5, 0, 10), 0);
+    }
+
+    #[test]
+    fn clamps_above_max() {
+        assert_eq!(clamp(20, 0, 10), 10);
+    }
+
+    #[test]
+    fn passes_through_value_in_range() {
+        assert_eq!(clamp(5, 0, 10), 5);
+    }
+
+    #[test]
+    fn handles_equal_min_max() {
+        assert_eq!(clamp(7, 5, 5), 5);
+    }
+
+    #[test]
+    #[should_panic(expected = "min must be <= max")]
+    fn panics_when_min_exceeds_max() {
+        clamp(0, 10, 5);   // ✅ contract enforced at runtime
+    }
+}
+```
+
+### Fix Pattern: Coverage Threshold Enforcement (Vitest config)
+
+```typescript
+// BEFORE — no coverage gate; coverage can silently drop to 0%
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+  },
+});
+
+// AFTER — coverage gate fails CI when thresholds are not met
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    coverage: {
+      provider: 'v8',               // or 'istanbul' for branch accuracy
+      reporter: ['text', 'lcov'],   // lcov for CI upload (Codecov/Coveralls)
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts', 'src/**/*.test.ts', 'src/generated/**'],
+      thresholds: {
+        lines: 80,       // ✅ CI fails below 80% line coverage
+        branches: 70,    // ✅ branch coverage catches untested if/else paths
+        functions: 80,
+        statements: 80,
+      },
+    },
+  },
 });
 ```
 
@@ -467,12 +747,18 @@ If a finding fits more than one domain, pick the most specific owner. Never dupl
 
 ## Industry Standards (verified 2026-10 via Context7)
 
-Sources: `vitest.dev/guide/`, `docs.pytest.org/en/stable/`, `go.dev/doc/code`, `junit.org/junit5/docs/current/user-guide/`
+Sources: `vitest.dev/guide/coverage`, `docs.pytest.org/en/stable/how-to/fixtures.html`, `go.dev/doc/code#Testing`, `doc.rust-lang.org/book/ch11-01-writing-tests.html`, `jestjs.io/docs/configuration#coveragethreshold-object`, `testing-library.com/docs/guiding-principles`
 
-- Test behavior through the public interface. A test that breaks on a private rename is coupled to structure.
-- Control time, randomness, and network access. A sleep-based wait is a flake.
-- Assert the outcome that matters, with a message that names the condition.
-- Add the smallest test that fails before the fix and passes after it, using the runner the repository already has.
+- **Vitest 2.x coverage**: Set `coverage.provider: 'v8'` (fast, no instrumentation) or `'istanbul'` for accurate branch coverage. Enforce thresholds with `coverage.thresholds` in `vitest.config.ts`; CI fails when any threshold is breached. Use `reporter: ['text', 'lcov']` for terminal output + Codecov upload. Exclude generated files, type definitions, and config from coverage scope via `coverage.exclude`.
+- **Jest 29+**: `jest.useFakeTimers()` now accepts `{ now: Date | number }` to pin the clock. Set `clearMocks: true`, `restoreMocks: true`, and `resetModules: false` in `jest.config.ts` to auto-clean mocks between tests without boilerplate `afterEach` calls.
+- **pytest ≥ 8.x**: Use `@pytest.mark.parametrize` for data-driven cases; fixture `scope="session"` for expensive shared state (DB connection, server). Use `pytest-anyio` or `anyio.pytest_plugin` for async fixtures. `conftest.py` at the package root auto-loads without explicit import. Run `pytest --tb=short -q` for compact CI output; add `--cov=src --cov-fail-under=80` to enforce a coverage gate.
+- **Go testing**: Table-driven tests with `t.Run(tc.name, ...)` and `t.Parallel()` are the canonical pattern. Use `testify/assert` and `testify/require` (require.NoError stops on first failure; assert continues). `go test -race ./...` detects data races — run on CI for all concurrent code. `go test -coverprofile=cov.out ./... && go tool cover -func=cov.out` shows per-function coverage.
+- **Rust**: `#[cfg(test)] mod tests` in the same file as the code under test for unit tests; separate `tests/` directory for integration tests. `#[should_panic(expected = "...")]` verifies panic message. `cargo tarpaulin` or `cargo llvm-cov` measures coverage (tarpaulin is faster; llvm-cov is more accurate). `cargo nextest` runs tests faster in parallel with better output.
+- **Test doubles taxonomy**: mocks replace external I/O boundaries (network, DB, filesystem) with controlled fakes. Don't mock what you own — mock the edge of your system, not internal helpers. MSW (Mock Service Worker) for HTTP interception in browser/Node; `msw@2` uses Fetch API natively and no longer requires `node-fetch` polyfills.
+- **Behavior-first naming**: describe what the code does, not how. `it('returns empty array when input is empty')` > `it('test case 3')`. Test names that read as sentences make failure messages self-documenting.
+- **Test behavior through the public interface.** A test that breaks on a private rename is coupled to structure, not behavior.
+- **Control time, randomness, and network access.** A sleep-based wait is a flake. Inject or mock the clock; seed randomness; intercept HTTP at the boundary.
+- **Add the smallest test that fails before the fix and passes after it**, using the runner the repository already has. Do not introduce a new test framework.
 ## Boundaries
 ✅ **Always do:** run existing tests before and after; use existing test framework and conventions; verify assertions test behavior; maintain test isolation; preserve user changes
 ⚠️ **Assess before changing:** introducing new test framework; testing private implementation details; tests requiring external services
@@ -495,9 +781,15 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 
 **Every bug deserves a test.** When you fix a bug, add a test that would have caught it. This prevents regression permanently.
 
-**Coverage is a floor, not a ceiling.** 80% coverage with meaningful assertions beats 100% coverage with `expect(result).toBeTruthy()`. Check assertion quality, not just line hits.
+**Coverage is a floor, not a ceiling.** 80% coverage with meaningful assertions beats 100% coverage with `expect(result).toBeTruthy()`. Check assertion quality, not just line hits. Enforce coverage thresholds in CI via `vitest.config.ts` `thresholds`, `pytest --cov-fail-under`, or `go test -coverprofile` with a threshold check script.
 
 **Async tests need explicit assertions.** `async () => { await thing() }` with no assertion always passes, even if `thing()` throws. Use `expect.assertions(n)` or `await expect(promise).resolves.toX()`.
+
+**Table-driven tests are the Go standard.** A set of `t.Run(tc.name, func(t *testing.T) {...})` sub-tests with `t.Parallel()` is idiomatic Go and compiles the test matrix into a single reviewable function. Repeated `TestFoo_Case1 / TestFoo_Case2` functions are a refactoring target.
+
+**`@pytest.mark.parametrize` eliminates copy-paste test bodies.** Any Python test file with more than 4–5 near-identical `def test_` functions and zero `parametrize` decorators is a candidate for consolidation. Parametrized tests produce clearer failure output: `FAILED test_slugify[Héllo Wörld-hello-world]` names the failing case.
+
+**Rust tests live in `#[cfg(test)]` modules co-located with the code.** Integration tests in `tests/` are for public API contracts only. `cargo nextest` runs tests faster and produces better output than `cargo test` for large suites; use `cargo llvm-cov` for line+branch coverage in CI.
 
 ## Log Format
 
