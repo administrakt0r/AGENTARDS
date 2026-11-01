@@ -104,3 +104,18 @@ Sources: `reactnative.dev/docs/components-and-apis`, `docs.expo.dev/`, `reactnav
 - Lists that can grow use the list component the app already uses.
 - Metro bundle success and a device or simulator run are separate evidence.
 - Treat committed native projects as owned or generated based on the Expo or React Native config you read.
+
+## Coding rules
+
+Apply these to JS/TS UI. When the Android layer is hand-written Kotlin, also apply `templates/android/template.md` coding rules to that Kotlin only.
+
+- A screen does one job. Extract a named component when layout wrappers nest past about three levels.
+- Every wrapper needs a reason. Long lists use the list component the screen already uses, with a stable key.
+- Hoist state to the owner. Ignore or cancel a request when the screen leaves or the inputs change. A late response must not overwrite a newer one.
+- Loading, empty, offline, and error stay on every screen you touch. Error text is product copy, not a raw exception.
+- User-visible strings go through the project's i18n, including alerts and permission reasons. Update every locale the app already ships.
+- Colors and type come from the existing theme when it has a token. Check dark mode, font scale, and RTL on the surface you change.
+- Do not add a navigation library, data library, or native UI toolkit the app does not already use. Do not rewrite a screen in Compose because an Android guide recommends Compose.
+- Do not blanket-wrap components in `memo` or `useCallback` without a measured cost or an existing local pattern that requires it.
+- Meaningful images need an accessibility label. Decorative ones get an explicit empty label.
+- No invented React Native or Expo APIs. Check the version in the lockfile. Do not upgrade the SDK as a side effect of a screen fix.

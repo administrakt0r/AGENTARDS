@@ -166,7 +166,7 @@ Templates in [`templates/`](templates/) add stack-specific anti-pattern checklis
 |:---------|:---------------|
 | `cloudflare-workers` | Cloudflare Workers edge runtime, D1 SQLite, Turnstile, KV, Wrangler 4 |
 | `react-router` | React Router 7 SSR, Vite 8, Tailwind CSS v4, Vitest 5, bundle budgets |
-| `android` | Gradle modules/variants, Jetpack Compose, Room, DataStore, lifecycle, permissions |
+| `android` | Gradle modules/variants, detected UI (Compose, Views, or a cross-platform host), lifecycle, permissions, flat-code and architecture rules |
 | `web-frontend` | React, Vue, Angular, Svelte, Next.js, Nuxt |
 | `backend-api` | Express, NestJS, FastAPI, Django, Flask, Laravel, Gin, Fiber |
 | `fullstack` | Monorepo architectures with frontend + backend separation |

@@ -39,7 +39,7 @@ This checkout is the source library. `AGENTARDS/agents/` and `AGENTARDS/config.j
 
 ## Platform coverage
 
-Use `templates/chrome-extension/template.md` for manifest/build detection, worker/content-script/UI boundaries, permission handling, and browser evidence. Use `templates/android/template.md` for actual Gradle modules/variants, lifecycle/state, permissions, and host-versus-device verification. Combine with cross-platform templates only when applicable.
+Use `templates/chrome-extension/template.md` for manifest/build detection, worker/content-script/UI boundaries, permission handling, and browser evidence. Use `templates/android/template.md` for actual Gradle modules/variants, lifecycle/state, permissions, host-versus-device verification, and the coding rules (flat Kotlin/Compose, no invented APIs, no pass-through layers). The default stack table in that template is only for an empty native project. Combine with cross-platform templates only when applicable, and do not rewrite a detected React Native, Expo, or Flutter UI into Compose.
 
 ## Validation and handoff
 
