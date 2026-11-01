@@ -24,22 +24,33 @@ Improve observability. Find missing logs, absent health checks, unstructured out
 ## Step 1: Detect Stack
 
 ```bash
-# Logging frameworks
+# ── Node / TypeScript logging frameworks ──────────────────────────────────────
 cat package.json 2>/dev/null | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 all_deps = {**d.get('dependencies', {}), **d.get('devDependencies', {})}
-log_tools = ['winston','pino','bunyan','log4js','morgan','debug','signale','loglevel','dart-logging','structlog','loguru']
+log_tools = ['winston','pino','bunyan','log4js','morgan','debug','signale','loglevel','structlog','loguru']
 for pkg in all_deps:
     if any(t in pkg for t in log_tools):
         print(f'LOG TOOL: {pkg} ({all_deps[pkg]})')
 " 2>/dev/null
 
-# Python logging
-cat requirements.txt 2>/dev/null | grep -iE "(loguru|structlog|logzero|python-json-logger)" | head -5
-cat pyproject.toml 2>/dev/null | grep -iE "(loguru|structlog)" | head -5
+# ── Python logging ─────────────────────────────────────────────────────────────
+cat requirements.txt pyproject.toml 2>/dev/null | grep -iE "(loguru|structlog|logzero|python-json-logger)" | head -10
+# Detect Python standard-library logging vs. structured replacement
+rg -n "^import logging$|^from logging import" --include="*.py" --glob="!test_*" --glob="!*_test.py" 2>/dev/null | head -10
+rg -n "structlog\.get_logger\|loguru\.logger\|get_logger\(__name__\)" --include="*.py" 2>/dev/null | head -5
 
-# Metrics/APM
+# ── Go logging (slog, zap, zerolog) ───────────────────────────────────────────
+cat go.mod 2>/dev/null | grep -iE "(zap|zerolog|logrus|slog)" | head -5
+rg -n "\"go.uber.org/zap\"|\"github.com/rs/zerolog\"|\"log/slog\"" --include="*.go" 2>/dev/null | head -10
+rg -n "log\.Printf\|log\.Println\|log\.Fatal" --include="*.go" --glob="!*_test.go" 2>/dev/null | head -10
+
+# ── Rust logging ──────────────────────────────────────────────────────────────
+cat Cargo.toml 2>/dev/null | grep -iE "(tracing|log|env_logger|slog)" | head -5
+rg -n "println!\|eprintln!" --include="*.rs" --glob="!*tests*" --glob="!examples/**" 2>/dev/null | head -10
+
+# ── Metrics/APM ───────────────────────────────────────────────────────────────
 cat package.json 2>/dev/null | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -50,14 +61,18 @@ for pkg in all_deps:
         print(f'METRICS: {pkg} ({all_deps[pkg]})')
 " 2>/dev/null
 
-# OpenTelemetry
-rg -n '@opentelemetry\|opentelemetry-sdk\|otelgrpc\|otelhttp' --include="*.ts" --include="*.js" --include="*.go" --include="*.py" 2>/dev/null | head -10
+# ── OpenTelemetry ─────────────────────────────────────────────────────────────
+rg -rn "@opentelemetry|opentelemetry-sdk|go.opentelemetry.io|opentelemetry-api" \
+  --include="*.ts" --include="*.js" --include="*.go" --include="*.py" --include="*.rs" \
+  2>/dev/null | head -10
 [ $? -ne 0 ] && echo 'NO OPENTELEMETRY: instrumentation not found'
 
-# Health check endpoints
-rg -n "health|healthz|ready|readyz|alive|status" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.py" --include="*.go" 2>/dev/null | head -10
+# ── Health check endpoints ─────────────────────────────────────────────────────
+rg -n "health|healthz|ready|readyz|alive|status" \
+  --include="*.ts" --include="*.tsx" --include="*.js" \
+  --include="*.py" --include="*.go" --include="*.rs" 2>/dev/null | head -10
 
-# Error tracking
+# ── Error tracking (Sentry, etc.) ─────────────────────────────────────────────
 cat package.json 2>/dev/null | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -67,6 +82,7 @@ for pkg in all_deps:
     if any(t in pkg for t in error_tools):
         print(f'ERROR TRACKING: {pkg} ({all_deps[pkg]})')
 " 2>/dev/null
+rg -n "sentry_sdk\.init\|sentry-go\|sentry\.Init" --include="*.py" --include="*.go" 2>/dev/null | head -5
 ```
 
 Mark each finding **Detected** / **Not detected** / **Unknown**.
@@ -100,26 +116,68 @@ done | head -10
 ### Missing Error Logging
 
 ```bash
-# Find error handlers without logging
-rg -n "catch\s*\(|\.catch\(|except\s|rescue\s" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.py" --include="*.go" 2>/dev/null | while IFS=: read -r file line content; do
-  start=$((line))
-  end=$((line + 5))
-  context=$(sed -n "${start},${end}p" "$file" 2>/dev/null)
-  if ! echo "$context" | grep -qiE "log|console|logger|error|warn|print|fprintf|fmt\.Print"; then
+# ── TypeScript/JS: catch blocks without logging ───────────────────────────────
+rg -n "catch\s*\(|\.catch\(" \
+  --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+  --glob="!node_modules/**" --glob="!dist/**" 2>/dev/null | \
+while IFS=: read -r file line content; do
+  ctx=$(sed -n "$((line)),$((line + 5))p" "$file" 2>/dev/null)
+  if ! echo "$ctx" | grep -qiE "log|console|logger|error|warn|captureException|report"; then
     echo "SWALLOWED ERROR: $file:$line"
+  fi
+done | head -20
+
+# ── Python: bare except or except that only passes ───────────────────────────
+rg -n "^\s*except\s*:" --include="*.py" --glob="!test_*" --glob="!*_test.py" 2>/dev/null | head -10
+rg -n "except\s+\w+(\s+as\s+\w+)?:" --include="*.py" --glob="!test_*" --glob="!*_test.py" 2>/dev/null | \
+while IFS=: read -r file line content; do
+  ctx=$(sed -n "$((line)),$((line + 4))p" "$file" 2>/dev/null)
+  if echo "$ctx" | grep -qE "^\s+pass$"; then
+    echo "SWALLOWED ERROR (bare pass): $file:$line"
+  elif ! echo "$ctx" | grep -qiE "log|logger|logging|structlog|loguru|print|raise"; then
+    echo "POSSIBLE SWALLOWED ERROR: $file:$line"
+  fi
+done | head -20
+
+# ── Go: error returned but not logged or wrapped ──────────────────────────────
+rg -n "if err != nil \{" --include="*.go" --glob="!*_test.go" 2>/dev/null | \
+while IFS=: read -r file line content; do
+  ctx=$(sed -n "$((line)),$((line + 4))p" "$file" 2>/dev/null)
+  if echo "$ctx" | grep -qE "^\s+return (err|nil)$"; then
+    if ! echo "$ctx" | grep -qiE "log\.|zap\.|slog\.|zerolog\.|fmt\.Errorf|errors\.Wrap"; then
+      echo "SILENT ERROR RETURN (no log/wrap): $file:$line"
+    fi
   fi
 done | head -20
 ```
 
-### Console.log in Production
+### Console.log / print / fmt.Println in Production
 
 ```bash
-# Find console.log in non-test files
-rg -n "console\.(log|warn|error|debug|info)" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --glob="!*.test.*" --glob="!*.spec.*" --glob="!*.d.ts" --glob="!node_modules/*" 2>/dev/null | wc -l
-rg -n "console\.(log|warn|error|debug|info)" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --glob="!*.test.*" --glob="!*.spec.*" --glob="!*.d.ts" --glob="!node_modules/*" 2>/dev/null | head -20
+# ── TypeScript/JS: console.log outside tests ──────────────────────────────────
+rg -n "console\.(log|warn|error|debug|info)" \
+  --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+  --glob="!*.test.*" --glob="!*.spec.*" --glob="!*.d.ts" \
+  --glob="!node_modules/**" --glob="!dist/**" 2>/dev/null | wc -l
+rg -n "console\.(log|warn|error|debug|info)" \
+  --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+  --glob="!*.test.*" --glob="!*.spec.*" --glob="!*.d.ts" \
+  --glob="!node_modules/**" --glob="!dist/**" 2>/dev/null | head -20
 
-# Find print() in Python production code
-rg -n "^\s*print\(" --include="*.py" --glob="!test_*" --glob="!*_test.py" --glob="!conftest.py" 2>/dev/null | head -20
+# ── Python: print() in production code ───────────────────────────────────────
+rg -n "^\s*print\(" --include="*.py" \
+  --glob="!test_*" --glob="!*_test.py" --glob="!conftest.py" 2>/dev/null | head -20
+
+# ── Go: fmt.Println / fmt.Printf in production code (not logging) ─────────────
+rg -n "fmt\.(Println|Printf|Print)\(" --include="*.go" \
+  --glob="!*_test.go" --glob="!cmd/main.go" 2>/dev/null | head -20
+# log.Printf is standard-library (not structured) — flag for upgrade
+rg -n "log\.(Printf|Println|Fatal|Fatalf)\(" --include="*.go" \
+  --glob="!*_test.go" 2>/dev/null | head -10
+
+# ── Rust: println! / eprintln! outside tests ──────────────────────────────────
+rg -n "(println|eprintln)!" --include="*.rs" \
+  --glob="!*tests*" --glob="!examples/**" --glob="!build.rs" 2>/dev/null | head -20
 ```
 
 ### PII in Logs
@@ -135,14 +193,30 @@ rg -n "log.*req\.body\|log.*response\.data\|logger.*body\|print.*request\." --in
 ### Unstructured Logs
 
 ```bash
-# Find string concatenation in logs (not parseable)
-rg -n "log\(['\"].*\+|console\.log\(['\"].*\+|logger\.info\(['\"].*\+" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.py" --include="*.go" 2>/dev/null | head -20
+# ── TypeScript/JS: string concatenation in log calls ─────────────────────────
+rg -n "log\(['\"].*\+|console\.log\(['\"].*\+|logger\.info\(['\"].*\+" \
+  --include="*.ts" --include="*.tsx" --include="*.js" \
+  --glob="!node_modules/**" --glob="!dist/**" 2>/dev/null | head -20
 
-# Find template literals in logs (semi-structured — should use object logging)
-rg -n "log\(\`|console\.log\(\`|logger\.info\(\`" --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null | head -20
+# Template literals in logs (semi-structured — prefer object fields)
+rg -n "log\(\`|console\.log\(\`|logger\.info\(\`" \
+  --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null | head -20
 
-# Find f-strings in Python logs (use structlog fields instead)
-rg -n "logging\.\w+\(f['\"]|logger\.\w+\(f['\"]" --include="*.py" 2>/dev/null | head -20
+# ── Python: f-strings in log calls (use structlog/loguru keyword args instead)
+rg -n "logging\.\w+\(f['\"]|logger\.\w+\(f['\"]" \
+  --include="*.py" 2>/dev/null | head -20
+# Standard-library logging used where structlog/loguru is available
+rg -n "^import logging$" --include="*.py" \
+  --glob="!test_*" --glob="!*_test.py" 2>/dev/null | head -10
+
+# ── Go: log.Printf/Println (standard library) instead of structured slog/zap ──
+rg -n "\"log\"" --include="*.go" --glob="!*_test.go" 2>/dev/null | head -10
+rg -n "log\.Printf\(\"[^%].*\"|log\.Println\(" --include="*.go" \
+  --glob="!*_test.go" 2>/dev/null | head -20
+
+# ── Rust: format strings in tracing macros instead of structured fields ────────
+rg -n "tracing::(info|warn|error|debug)!\(\"[^}]*\"\)" \
+  --include="*.rs" --glob="!*tests*" 2>/dev/null | head -20
 ```
 
 ### High Cardinality Labels
@@ -159,16 +233,32 @@ done | head -20
 ### Missing Request Logging
 
 ```bash
-# Check for HTTP request logging middleware
-rg -n "morgan|pino-http|express-winston|request.*log" --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null | head -5
-
-# Check for structured request logging
-rg -n "req\.method|req\.url|req\.path|request\.method|request\.url" --include="*.ts" --include="*.js" --include="*.py" --include="*.go" 2>/dev/null | head -10
-
-# If Express/Fastify without request logging
+# ── TypeScript/JS: Express/Fastify without HTTP logging middleware ─────────────
+rg -n "morgan|pino-http|express-winston|request.*log" \
+  --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null | head -5
 if rg -q "express\(\)|fastify\(\)" --include="*.ts" --include="*.js" 2>/dev/null; then
   if ! rg -q "morgan|pino-http|express-winston" --include="*.ts" --include="*.js" 2>/dev/null; then
-    echo "MISSING: No HTTP request logging middleware"
+    echo "MISSING: No HTTP request logging middleware for Express/Fastify"
+  fi
+fi
+
+# ── Python: FastAPI/Flask/Django without request logging middleware ────────────
+if rg -q "from fastapi import\|FastAPI()" --include="*.py" 2>/dev/null; then
+  if ! rg -q "middleware.*log\|logging.*request\|access_log" --include="*.py" 2>/dev/null; then
+    echo "MISSING: No access logging middleware for FastAPI"
+  fi
+fi
+if rg -q "from flask import\|Flask(__name__)" --include="*.py" 2>/dev/null; then
+  if ! rg -q "before_request\|after_request\|logging" --include="*.py" 2>/dev/null; then
+    echo "MISSING: No request hook for Flask access logging"
+  fi
+fi
+
+# ── Go: net/http or gin/echo without request logging middleware ───────────────
+rg -n "gin\.New()\|echo\.New()\|http\.ListenAndServe" --include="*.go" 2>/dev/null | head -5
+if rg -q "gin\.New()\|echo\.New()" --include="*.go" 2>/dev/null; then
+  if ! rg -q "Logger()\|zap\.Logger\|slog\.Handler\|AccessLog" --include="*.go" 2>/dev/null; then
+    echo "MISSING: No request logging middleware for gin/echo"
   fi
 fi
 ```
@@ -176,12 +266,23 @@ fi
 ### Alerts Without Runbooks
 
 ```bash
-# Alerts without runbook links (on-call engineers fly blind)
-find . -maxdepth 5 -name '*.yaml' -o -name '*.yml' 2>/dev/null | xargs grep -l 'PrometheusRule\|alerting\|groups:' 2>/dev/null | while read -r f; do
-  if ! rg -q "runbook\|wiki\|playbook\|docs" "$f" 2>/dev/null; then
-    echo "ALERT WITHOUT RUNBOOK: $f"
-  fi
-done | head -10
+# ── PrometheusRule / Alertmanager YAML without runbook annotation ─────────────
+find . -maxdepth 5 \( -name '*.yaml' -o -name '*.yml' \) 2>/dev/null | \
+  xargs grep -l 'PrometheusRule\|alerting\|groups:' 2>/dev/null | \
+  while read -r f; do
+    if ! rg -q "runbook_url\|runbook\|wiki\|playbook\|docs" "$f" 2>/dev/null; then
+      echo "ALERT WITHOUT RUNBOOK: $f"
+    fi
+  done | head -10
+
+# ── Grafana alert JSON/YAML ────────────────────────────────────────────────────
+find . -maxdepth 5 \( -name '*.json' -o -name '*.yaml' \) 2>/dev/null | \
+  xargs grep -l '"alertRuleTags"\|"GrafanaAlert"' 2>/dev/null | \
+  while read -r f; do
+    if ! rg -q "runbook\|playbook\|docs\|wiki" "$f" 2>/dev/null; then
+      echo "GRAFANA ALERT WITHOUT RUNBOOK: $f"
+    fi
+  done | head -10
 ```
 
 ### Missing Metrics
@@ -254,30 +355,34 @@ app.use(pinoHttp({ logger }));
 ### Replace console.log with Structured Logger
 
 ```typescript
-// Before (unstructured — hard to parse, query, or alert on)
+// # BEFORE (TypeScript — unstructured, hard to parse, query, or alert on)
 console.log('User created:', user);
 console.error('Failed to save:', error);
 
-// After (structured — use object fields for searchable context)
+// # AFTER — pino with structured fields (JSON; searchable in Loki/CloudWatch/Datadog)
 import pino from 'pino';
-const logger = pino({ name: 'myapp' });
+const logger = pino({
+  name: 'myapp',
+  level: process.env.LOG_LEVEL ?? 'info',
+  redact: ['req.headers.authorization', 'req.body.password'], // scrub PII
+});
 
 // Log the ID, not the full object — avoid PII leaking
-logger.info({ userId: user.id, email: user.email }, 'User created');
+logger.info({ userId: user.id }, 'User created');
 logger.error({ err: error, userId: user.id }, 'Failed to save user');
 ```
 
 ### Add Error Logging to Catch Blocks
 
 ```typescript
-// Before (silent failure)
+// # BEFORE (TypeScript — silent failure)
 try {
   await processData(input);
 } catch (e) {
   // silent
 }
 
-// After (log with context, rethrow so caller can handle)
+// # AFTER — log with context, rethrow so caller can handle
 try {
   await processData(input);
 } catch (e) {
@@ -286,7 +391,142 @@ try {
 }
 ```
 
-### Add OpenTelemetry Tracing
+### Fix Pattern: Python — Replace print() / standard-library logging with structlog
+
+```python
+# # BEFORE — standard-library logging with f-string interpolation
+import logging
+logger = logging.getLogger(__name__)
+
+def create_user(user_id: int, email: str) -> None:
+    logger.info(f"Creating user {user_id} ({email})")   # f-string: not structured
+    try:
+        db.save(user_id, email)
+    except Exception as exc:
+        logger.error(f"Failed: {exc}")                   # no context fields; swallowed
+        pass                                              # bare pass
+
+# # AFTER — structlog with bound context fields (parseable JSON)
+import structlog
+
+log = structlog.get_logger()
+
+def create_user(user_id: int, email: str) -> None:
+    bound = log.bind(user_id=user_id)          # bind once, reuse in function
+    bound.info("creating_user")                # message is a slug; fields carry data
+    try:
+        db.save(user_id, email)
+        bound.info("user_created")
+    except Exception as exc:
+        bound.exception("user_create_failed")  # logs exc_info automatically
+        raise                                  # re-raise; never swallow
+```
+
+### Fix Pattern: Go — Replace log.Printf with slog structured logging
+
+```go
+// # BEFORE — standard library log (no fields, no level control, text output)
+import "log"
+
+func CreateOrder(userID int, amount float64) error {
+    log.Printf("creating order for user %d amount %.2f", userID, amount)
+    if err := db.Insert(userID, amount); err != nil {
+        log.Printf("insert failed: %v", err)   // format string, not fields
+        return err                             // returned but not wrapped
+    }
+    return nil
+}
+
+// # AFTER — slog (stdlib since Go 1.21) with structured fields and level control
+import (
+    "context"
+    "fmt"
+    "log/slog"
+)
+
+// main.go: configure once at startup
+// slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
+func CreateOrder(ctx context.Context, userID int, amount float64) error {
+    slog.InfoContext(ctx, "creating_order",
+        "user_id", userID,
+        "amount_cents", int(amount*100), // avoid float in structured logs
+    )
+    if err := db.Insert(userID, amount); err != nil {
+        slog.ErrorContext(ctx, "order_insert_failed",
+            "user_id", userID,
+            "err", err,
+        )
+        return fmt.Errorf("CreateOrder: %w", err) // wrap for stack context
+    }
+    return nil
+}
+```
+
+### Fix Pattern: Go — Add OpenTelemetry tracing (otelhttp + otelgrpc)
+
+```go
+// # BEFORE — plain net/http handler, no trace propagation
+func main() {
+    http.HandleFunc("/orders", handleOrders)
+    http.ListenAndServe(":8080", nil)
+}
+
+// # AFTER — auto-instrumented with otelhttp; propagates W3C traceparent header
+import (
+    "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+    "go.opentelemetry.io/otel/sdk/trace"
+)
+
+func initTracer() (*trace.TracerProvider, error) {
+    exporter, err := otlptracehttp.New(context.Background())
+    if err != nil {
+        return nil, err
+    }
+    tp := trace.NewTracerProvider(trace.WithBatcher(exporter))
+    otel.SetTracerProvider(tp)
+    return tp, nil
+}
+
+func main() {
+    tp, _ := initTracer()
+    defer tp.Shutdown(context.Background())
+
+    // otelhttp wraps the mux — every request gets a span automatically
+    http.Handle("/orders", otelhttp.NewHandler(http.HandlerFunc(handleOrders), "orders"))
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+### Fix Pattern: Rust — Replace println! with tracing crate
+
+```rust
+// # BEFORE — println! in production (no level, no fields, not parseable)
+fn process_event(event_id: u64, payload: &str) {
+    println!("Processing event {} payload={}", event_id, payload);
+    if let Err(e) = do_work(payload) {
+        eprintln!("Failed event {}: {}", event_id, e);
+    }
+}
+
+// # AFTER — tracing crate with structured fields (integrates with OpenTelemetry)
+use tracing::{error, info, instrument};
+
+// main.rs: init subscriber once
+// tracing_subscriber::fmt().json().init();
+
+#[instrument(fields(event_id = event_id))]   // auto-span on every call
+fn process_event(event_id: u64, payload: &str) {
+    info!(payload_len = payload.len(), "processing_event");  // structured fields
+    if let Err(e) = do_work(payload) {
+        error!(error = %e, "event_processing_failed");       // %e: Display; ?e: Debug
+    }
+}
+```
+
+### Add OpenTelemetry Tracing (TypeScript)
 
 ```typescript
 // sdk.ts — initialize BEFORE importing application code
@@ -337,6 +577,60 @@ app.get('/metrics', async (_req, res) => {
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
 });
+```
+
+### Add Prometheus Metrics (Go)
+
+```go
+// # BEFORE — plain HTTP server, no metrics endpoint, no golden signals
+func main() {
+    http.HandleFunc("/", handler)
+    http.ListenAndServe(":8080", nil)
+}
+
+// # AFTER — four golden signals with prometheus/client_golang + promhttp
+import (
+    "net/http"
+    "time"
+    "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promauto"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+    httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+        Name: "http_requests_total",
+        Help: "Total HTTP requests.",
+    }, []string{"method", "status_code", "route"}) // no user_id — high cardinality
+
+    httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+        Name:    "http_request_duration_seconds",
+        Help:    "HTTP request latency.",
+        Buckets: []float64{.01, .05, .1, .25, .5, 1, 2.5},
+    }, []string{"method", "route"})
+)
+
+type statusRecorder struct {
+    http.ResponseWriter
+    status int
+}
+func (r *statusRecorder) WriteHeader(code int) { r.status = code; r.ResponseWriter.WriteHeader(code) }
+
+func instrument(route string, next http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        rec := &statusRecorder{ResponseWriter: w, status: 200}
+        start := time.Now()
+        next(rec, r)
+        httpRequestDuration.WithLabelValues(r.Method, route).Observe(time.Since(start).Seconds())
+        httpRequestsTotal.WithLabelValues(r.Method, http.StatusText(rec.status), route).Inc()
+    }
+}
+
+func main() {
+    http.Handle("/metrics", promhttp.Handler())
+    http.HandleFunc("/", instrument("/", handler))
+    http.ListenAndServe(":8080", nil)
+}
 ```
 
 ## Step 4: Verify
@@ -450,12 +744,44 @@ If a finding fits more than one domain, pick the most specific owner. Never dupl
 
 ## Industry Standards (verified 2026-10 via Context7)
 
-Sources: `opentelemetry.io/docs/concepts/`, `prometheus.io/docs/practices/naming/`, `12factor.net/logs`
+### OpenTelemetry (cross-language)
+Sources: `opentelemetry.io/docs/concepts/`, `opentelemetry.io/docs/languages/`
 
-- Logs are structured, written to stdout or the sink the process already uses, and free of secrets, tokens, and raw credentials.
-- Metric names include a unit and a stable label set. A new label with unbounded values is a cardinality bug.
-- Spans follow the request across the boundary the service already traces. Do not invent a second tracer.
-- A health endpoint reports readiness of dependencies the process cannot serve without.
+- OpenTelemetry SDK ≥ 1.x is the vendor-neutral standard. Do not introduce a second tracer or a vendor-specific SDK alongside it.
+- Initialize the SDK **before** importing application code. Auto-instrumentation patches the http, grpc, and db libraries at startup.
+- Propagate W3C TraceContext (`traceparent`, `tracestate`) across every service boundary. Missing propagation creates orphaned traces.
+- Use OTLP/HTTP (`port 4318`) or OTLP/gRPC (`port 4317`) as the export endpoint. Vendor-specific exporters are addons, not replacements.
+- Span names must be low-cardinality: `POST /orders`, not `POST /orders/12345`.
+
+### Prometheus & Metrics Naming
+Sources: `prometheus.io/docs/practices/naming/`, `prometheus.io/docs/practices/instrumentation/`
+
+- Metric names: `<namespace>_<subsystem>_<unit>_total` for counters; `_seconds` for durations; `_bytes` for sizes. Unit suffix is mandatory.
+- Label cardinality: never use `user_id`, `request_id`, `session_id`, or any unbounded value as a label. These belong in trace attributes.
+- Histograms use `prometheus.io/docs/practices/histograms/` bucket guidelines: `[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]` for HTTP latency.
+- Every `Counter` must end in `_total`. Every `Gauge` must not.
+
+### Structured Logging by Language
+Sources: `pkg.go.dev/log/slog`, `structlog.readthedocs.io/`, `docs.rs/tracing/`, `getpino.io/`
+
+- **TypeScript/Node.js:** pino ≥ 8 (JSON native, low-overhead). Never use `console.log` in production. Configure `redact` for credential fields.
+- **Python:** structlog ≥ 24 with `JSONRenderer` pipeline. Avoid standard-library `logging` f-string interpolation — use bound context fields instead.
+- **Go:** `log/slog` (stdlib ≥ Go 1.21) with `NewJSONHandler`. For high-throughput services, use `go.uber.org/zap` ≥ 1.27 or `github.com/rs/zerolog`. **Never ship `log.Printf` in production service code** — it produces unstructured text.
+- **Rust:** `tracing` ≥ 0.1 crate with `tracing-subscriber` `json` feature. Use `#[instrument]` for automatic span creation on functions. `println!` / `eprintln!` must not appear in library or service code.
+
+### The 12-Factor App: Logs
+Source: `12factor.net/logs`
+
+- Treat logs as event streams. Write to stdout. Let the execution environment route them.
+- Never open or manage logfiles in the application. Never route to a log aggregator from application code.
+
+### Health Check Standards
+Source: `tools.ietf.org/html/draft-inadarei-api-health-check`
+
+- `/health` (liveness): returns 200 if the process is alive. No dependency checks — used by process restarts.
+- `/ready` (readiness): returns 200 only if all required dependencies (DB, cache, message broker) are reachable. Returns 503 otherwise. Kubernetes routes traffic only to ready pods.
+- Response body: `{ "status": "ok" | "degraded" | "fail", "checks": { "<dep>": "ok" | "fail" } }`.
+
 ## Boundaries
 ✅ **Always do:** verify logging against actual code paths; use existing observability patterns; ensure no secrets are logged; check health endpoint correctness; report gaps honestly
 ⚠️ **Assess before changing:** introducing new observability tools; log level changes in production; dashboard creation; alerting rule changes
