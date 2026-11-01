@@ -170,6 +170,31 @@ rg -n "JSON\.parse\(" --include="*.ts" --include="*.tsx" --include="*.js" --incl
     echo "JSON.parse WITHOUT TRY/CATCH: $file:$line"
   fi
 done | head -20
+
+# Python: asyncio.gather with return_exceptions=True but result not inspected
+rg -n "return_exceptions=True" --include="*.py" 2>/dev/null | while IFS=: read -r file line content; do
+  end=$((line + 10))
+  ctx=$(sed -n "${line},${end}p" "$file" 2>/dev/null)
+  if ! echo "$ctx" | grep -qE "isinstance.*Exception|for.*result|BaseException"; then
+    echo "UNHANDLED gather EXCEPTIONS: $file:$line (results not inspected for BaseException)"
+  fi
+done | head -10
+
+# Python: coroutine never awaited (common mistake — creates coroutine object, does nothing)
+rg -n "^\s+\w+\s*=\s*\w+\(" --include="*.py" 2>/dev/null | while IFS=: read -r file line content; do
+  ctx=$(sed -n "${line}p" "$file" 2>/dev/null)
+  if echo "$ctx" | grep -qE "async def|await" ; then continue; fi
+  # look for async def in nearby context
+  start=$((line - 20))
+  block=$(sed -n "${start},${line}p" "$file" 2>/dev/null)
+  if echo "$block" | grep -q "async def" && ! echo "$ctx" | grep -q "await"; then
+    echo "POSSIBLE MISSING AWAIT: $file:$line — $ctx"
+  fi
+done 2>/dev/null | head -10
+
+# Rust: unwrap/expect in non-test, non-main code (panic risk)
+rg -n "\.unwrap\(\)|\.expect\(" --include="*.rs" \
+  --glob="!*_test.rs" --glob="!*/tests/*" --glob="!*/benches/*" 2>/dev/null | head -20
 ```
 
 ### Memory Leaks and Resource Leaks
@@ -215,139 +240,292 @@ done | head -10
 
 ## Step 3: Fix What You Find
 
-### Fix Empty Catch Blocks
+Write a failing test first, confirm it fails, apply the minimal fix, confirm it passes. Never fix without reproducing first.
 
-Write a failing test first, confirm it fails, apply the fix, confirm it passes.
+### Fix Pattern: Empty Catch Block → Structured Error Propagation (TypeScript)
 
 ```typescript
-// Step 1: Write the failing test
-describe('processData error handling', () => {
-  it('should propagate errors, not swallow them', async () => {
-    const badInput = null;
-    await expect(processData(badInput)).rejects.toThrow('Data processing failed');
+// BEFORE — error swallowed silently; caller has no idea anything failed
+async function processData(input: unknown): Promise<void> {
+  try {
+    const parsed = JSON.parse(input as string);
+    await db.save(parsed);
+  } catch (e) {
+    // TODO: handle error   ❌ swallowed — callers see success, data is lost
+  }
+}
+
+// AFTER — log + rethrow with context; caller can recover or propagate
+async function processData(input: unknown): Promise<void> {
+  try {
+    const parsed = JSON.parse(input as string);
+    await db.save(parsed);
+  } catch (e) {
+    // ✅ structured log preserves original error and input for debugging
+    logger.error({ err: e, input }, 'processData: failed to parse or save');
+    throw new ProcessingError('Data processing failed', { cause: e });
+  }
+}
+
+// Regression test — write BEFORE applying the fix to confirm it fails first
+describe('processData', () => {
+  it('propagates errors instead of swallowing them', async () => {
+    expect.assertions(1);
+    await expect(processData(null)).rejects.toThrow('Data processing failed');
   });
 });
-
-// Step 2: Fix the implementation
-// Before
-try {
-  processData(input);
-} catch (e) {
-  // TODO: handle error
-}
-
-// After — log at minimum, rethrow with context
-try {
-  processData(input);
-} catch (e) {
-  logger.error({ err: e, input }, 'Failed to process data');
-  throw new ProcessingError('Data processing failed', { cause: e });
-}
 ```
 
-### Fix Unhandled Promise Rejections
+### Fix Pattern: Unhandled Promise Rejection → async/await with try/catch (TypeScript)
 
 ```typescript
-// Before
-fetchData().then(processData);
+// BEFORE — .then() chain with no .catch(); Node.js will crash on rejection
+function initDashboard(userId: string): void {
+  fetchProfile(userId)
+    .then(profile => renderProfile(profile))  // ❌ unhandled rejection
+    .then(() => fetchOrders(userId))
+    .then(orders => renderOrders(orders));     // ❌ no .catch() anywhere
+}
 
-// After — chain .catch() or convert to async/await with try/catch
-async function safeProcessing(): Promise<void> {
+// AFTER — async/await with explicit try/catch; error surfaced to caller
+async function initDashboard(userId: string): Promise<void> {
   try {
-    const data = await fetchData();
-    await processData(data);
+    const profile = await fetchProfile(userId);
+    renderProfile(profile);
+    const orders = await fetchOrders(userId);
+    renderOrders(orders);
   } catch (error) {
-    logger.error({ err: error }, 'Fetch-and-process pipeline failed');
-    throw error; // let caller decide recovery
+    // ✅ log the error; re-throw so the caller can show an error state
+    logger.error({ err: error, userId }, 'initDashboard failed');
+    throw error;
   }
 }
 ```
 
-### Fix Goroutine Leaks (Go)
+### Fix Pattern: JSON.parse Without Guard → safeParse Utility (TypeScript)
+
+```typescript
+// BEFORE — crashes the process on any malformed input (e.g., from untrusted API)
+function loadConfig(raw: string): AppConfig {
+  return JSON.parse(raw) as AppConfig;  // ❌ SyntaxError on '{broken'
+}
+
+// AFTER — safe utility with fallback; caller decides recovery strategy
+function safeParse<T>(raw: string, fallback: T, label?: string): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch (e) {
+    logger.warn({ err: e, raw: raw.slice(0, 200), label }, 'JSON.parse failed, using fallback');
+    return fallback;
+  }
+}
+
+function loadConfig(raw: string): AppConfig {
+  return safeParse(raw, DEFAULT_CONFIG, 'loadConfig');  // ✅ never throws
+}
+```
+
+### Fix Pattern: Null Dereference → Optional Chaining with Fallback (TypeScript)
+
+```typescript
+// BEFORE — crashes if user, profile, or address is null/undefined
+function formatAddress(user: User): string {
+  return user.profile.address.street + ', ' + user.profile.address.city;
+  //         ↑ throws TypeError if profile or address is null
+}
+
+// AFTER — optional chaining + nullish coalescing; safe and explicit
+function formatAddress(user: User): string {
+  const street = user?.profile?.address?.street ?? '';
+  const city   = user?.profile?.address?.city   ?? '';
+  if (!street && !city) return 'Address unknown';  // ✅ explicit empty state
+  return `${street}, ${city}`.trim().replace(/^,\s*/, '');
+}
+```
+
+### Fix Pattern: Missing useEffect Cleanup → Stable Teardown (React / TypeScript)
+
+```typescript
+// BEFORE — event listener and interval leak on component unmount
+function ResizeTracker({ onResize }: { onResize: (w: number) => void }) {
+  useEffect(() => {
+    const handler = () => onResize(window.innerWidth);
+    window.addEventListener('resize', handler);       // ❌ never removed
+    const id = setInterval(() => handler(), 5_000);   // ❌ never cleared
+  }, []);                                             // ❌ stale closure
+
+  return null;
+}
+
+// AFTER — cleanup function returned; dependencies declared
+function ResizeTracker({ onResize }: { onResize: (w: number) => void }) {
+  useEffect(() => {
+    const handler = () => onResize(window.innerWidth);
+    window.addEventListener('resize', handler);
+    const id = setInterval(handler, 5_000);
+
+    return () => {                                    // ✅ runs on unmount or dep change
+      window.removeEventListener('resize', handler);
+      clearInterval(id);
+    };
+  }, [onResize]);                                     // ✅ correct dependency
+
+  return null;
+}
+```
+
+### Fix Pattern: Goroutine Leak → Context-Aware Worker (Go)
 
 ```go
-// Before — goroutine with no termination path
-go func() {
-    for {
-        process()
-    }
-}()
+// BEFORE — goroutine spins forever; no exit path when server shuts down
+func startProcessor() {
+    go func() {            // ❌ leaks: no context, no WaitGroup, no return
+        for {
+            item := queue.Pop()
+            process(item)
+        }
+    }()
+}
 
-// After — ctx-aware goroutine that exits cleanly
-func startWorker(ctx context.Context, wg *sync.WaitGroup) {
+// AFTER — context-aware goroutine; clean shutdown via ctx.Done()
+func startProcessor(ctx context.Context, wg *sync.WaitGroup) {
     wg.Add(1)
     go func() {
-        defer wg.Done()
+        defer wg.Done()       // ✅ signals completion to WaitGroup
         for {
             select {
-            case <-ctx.Done():
+            case <-ctx.Done(): // ✅ exits cleanly on cancellation/timeout
                 return
             default:
-                process()
+                item, ok := queue.TryPop()
+                if !ok {
+                    time.Sleep(10 * time.Millisecond) // back-off; avoids busy-spin
+                    continue
+                }
+                process(item)
             }
         }
     }()
 }
+
+// In main / server shutdown:
+// ctx, cancel := context.WithCancel(context.Background())
+// startProcessor(ctx, &wg)
+// ...
+// cancel()   // signals all workers
+// wg.Wait()  // waits for clean exit
 ```
 
-### Fix Missing useEffect Cleanup
+### Fix Pattern: Ignored Error Return → Wrapped Error with Context (Go)
 
-```tsx
-// Before — event listener leaks on unmount
-useEffect(() => {
-  window.addEventListener('resize', handleResize);
-}, []);
-
-// After — cleanup returned
-useEffect(() => {
-  window.addEventListener('resize', handleResize);
-  return () => {
-    window.removeEventListener('resize', handleResize);
-  };
-}, [handleResize]);
-```
-
-### Fix Assignment in Condition
-
-```typescript
-// Before
-if (result = fetchData()) {
-  process(result);
+```go
+// BEFORE — error discarded with blank identifier; silent data loss
+func saveRecord(db *sql.DB, r Record) {
+    stmt, _ := db.Prepare("INSERT INTO records VALUES (?, ?)")  // ❌ _ discards err
+    stmt.Exec(r.ID, r.Value)                                    // ❌ may panic on nil stmt
 }
 
-// After
-result = fetchData();
-if (result) {
-  process(result);
+// AFTER — errors wrapped with context using fmt.Errorf("%w") for errors.Is/As
+func saveRecord(db *sql.DB, r Record) error {
+    stmt, err := db.Prepare("INSERT INTO records VALUES (?, ?)")
+    if err != nil {
+        return fmt.Errorf("saveRecord: prepare statement: %w", err)  // ✅ wraps for errors.Is
+    }
+    defer stmt.Close()   // ✅ always close the prepared statement
+
+    if _, err = stmt.Exec(r.ID, r.Value); err != nil {
+        return fmt.Errorf("saveRecord: exec (id=%d): %w", r.ID, err) // ✅ adds call context
+    }
+    return nil
 }
+
+// Caller can introspect the chain:
+// if errors.Is(err, sql.ErrNoRows) { ... }
+// var pgErr *pgconn.PgError
+// if errors.As(err, &pgErr) && pgErr.Code == "23505" { ... } // unique violation
 ```
 
-### Fix Null Dereference
+### Fix Pattern: Python Bare Except → Specific Exception Handling
 
-```typescript
-// Before
-const name = user.profile.name;
+```python
+# BEFORE — bare except catches everything including SystemExit and KeyboardInterrupt;
+# the error is silently swallowed
+def load_config(path: str) -> dict:
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except:                    # ❌ catches ALL exceptions including Ctrl-C
+        pass                   # ❌ caller receives None, crashes later with AttributeError
 
-// After — optional chaining with fallback
-const name = user?.profile?.name ?? 'Unknown';
+# AFTER — specific exceptions; explicit return type; caller gets useful error
+def load_config(path: str) -> dict:
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.warning("Config not found at %s, using defaults", path)
+        return {}              # ✅ safe fallback; caller knows the contract
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in config {path!r}: {exc}") from exc  # ✅ chain
 ```
 
-### Fix JSON.parse Without Guard
+### Fix Pattern: Python asyncio — Swallowed Coroutine Error → gather with propagation
 
-```typescript
-// Before
-const data = JSON.parse(rawInput);
+```python
+# BEFORE — asyncio.gather swallows individual task errors when return_exceptions=True
+# and the caller never checks the returned exception objects
+async def sync_all(user_ids: list[int]) -> None:
+    results = await asyncio.gather(
+        *[sync_user(uid) for uid in user_ids],
+        return_exceptions=True,  # ❌ errors returned as values, never inspected
+    )
+    # ❌ results may contain Exception objects; caller treats all as success
 
-// After
-function safeParse<T>(raw: string, fallback: T): T {
-  try {
-    return JSON.parse(raw) as T;
-  } catch (e) {
-    logger.warn({ err: e, raw }, 'JSON.parse failed, using fallback');
-    return fallback;
-  }
+# AFTER — inspect results; re-raise or log each failure; don't hide partial errors
+async def sync_all(user_ids: list[int]) -> list[int]:
+    """Returns list of successfully synced user IDs; logs individual failures."""
+    results = await asyncio.gather(
+        *[sync_user(uid) for uid in user_ids],
+        return_exceptions=True,
+    )
+    failed, synced = [], []
+    for uid, result in zip(user_ids, results):
+        if isinstance(result, BaseException):
+            logger.error("sync_user(%d) failed: %s", uid, result, exc_info=result)
+            failed.append(uid)
+        else:
+            synced.append(uid)
+    if failed:
+        logger.warning("sync_all: %d/%d users failed: %s", len(failed), len(user_ids), failed)
+    return synced  # ✅ caller knows exactly what succeeded
+```
+
+### Fix Pattern: Rust unwrap() → ? Operator with Contextual Error (Rust)
+
+```rust
+// BEFORE — .unwrap() panics in production on any Err; hard to debug without context
+fn read_config(path: &str) -> AppConfig {
+    let contents = std::fs::read_to_string(path).unwrap();   // ❌ panics on missing file
+    let config: AppConfig = serde_json::from_str(&contents).unwrap(); // ❌ panics on bad JSON
+    config
 }
-const data = safeParse(rawInput, defaultData);
+
+// AFTER — ? propagates errors; anyhow::Context adds the "why" at each step
+use anyhow::{Context, Result};
+
+fn read_config(path: &str) -> Result<AppConfig> {
+    let contents = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read config file: {path}"))?;  // ✅ descriptive
+
+    let config: AppConfig = serde_json::from_str(&contents)
+        .with_context(|| format!("Invalid JSON in config file: {path}"))?; // ✅ propagates
+
+    Ok(config)
+}
+
+// In binaries, main can return Result<(), anyhow::Error> to auto-print the chain:
+// fn main() -> anyhow::Result<()> { ... }
+// Output: "Failed to read config file: /etc/app/config.json: No such file or directory (os error 2)"
 ```
 
 ## Step 4: Verify
@@ -458,12 +636,18 @@ If a finding fits more than one domain, pick the most specific owner. Never dupl
 
 ## Industry Standards (verified 2026-10 via Context7)
 
-Sources: `go.dev/doc/articles/race_detector`, `docs.python.org/3/library/asyncio.html`, `developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise`
+Sources: `go.dev/doc/articles/race_detector`, `go.dev/blog/go1.13-errors`, `docs.python.org/3/library/asyncio-task.html`, `docs.rs/anyhow/latest/anyhow/`, `developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled`
 
-- Reproduce the failure with a command, test, or traced input before changing code.
-- A race is fixed by synchronizing the shared state the detector or the log names, then re-running that check.
-- Null and bounds failures need the call site that produces them, not a blanket default.
-- A green suite that never executed the broken path is not verification.
+- **Reproduce before fixing.** Run the test, command, or input that demonstrates the failure. A fix without a reproduction is a guess. Write a failing test first; fix it so the test passes.
+- **Root cause, not symptom.** A TypeError is the symptom. The missing null check or the caller that passes `undefined` is the root cause. Trace the call stack before touching code.
+- **Go 1.13+ error wrapping**: Use `fmt.Errorf("context: %w", err)` to wrap errors and preserve the chain. Callers use `errors.Is(err, target)` for sentinel matching and `errors.As(err, &typed)` for type extraction. Never use `fmt.Sprintf("context: %v", err)` — it breaks the chain. `goleak.VerifyTestMain` in `TestMain` catches goroutine leaks in tests.
+- **Go race detector**: `go test -race ./...` and `go run -race main.go` detect data races at runtime. Run on CI for any package with goroutines. A race is fixed by synchronizing the shared state the detector names — not by silencing the detector.
+- **Python `asyncio.gather` with `return_exceptions=True`**: always inspect the returned list for `BaseException` instances. An unhandled exception object in the list means that task silently failed. For partial-failure workflows use `return_exceptions=True` + explicit inspection; for fail-fast use the default (raises the first exception).
+- **Python exception chaining**: `raise NewError("msg") from original_exc` preserves the traceback chain. `except SomeError as e: raise OtherError("msg") from e` is the correct pattern. Bare `raise` (no argument) re-raises the current exception and preserves context. `except: pass` is always a bug.
+- **Rust `anyhow`**: prefer `anyhow::Result<T>` for application code; `thiserror` for library crate error types that callers match on. `.context("message")` and `.with_context(|| format!(...))` add human-readable context at each boundary. `unwrap()` is acceptable only in tests and in `main()` when a panic is the intended behavior on startup failure.
+- **Node.js / Deno Unhandled Rejections**: `UnhandledPromiseRejectionWarning` becomes a process crash in Node.js 15+. Every `.then()` needs a `.catch()` or the parent function must be `async` and use `try/catch`. `Promise.allSettled` (not `Promise.all`) is safe for parallel operations where partial failure is acceptable.
+- **React `useEffect` dependency array**: every value referenced inside the effect that comes from outside it must be in the dependency array. Stale closures cause bugs that are hard to reproduce. Returning a cleanup function is mandatory for subscriptions, timers, and event listeners.
+- **A green suite that never executed the broken path is not verification.** After fixing, confirm the previously failing test now passes and no other tests regressed.
 ## Boundaries
 ✅ **Always do:** reproduce before fixing; write a failing test first; verify after fixing; use minimal changes; preserve user work; report severity honestly
 ⚠️ **Assess before changing:** changes to public interfaces; refactoring working code; fixes requiring production access
@@ -480,7 +664,7 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 
 **Empty catch blocks are bugs waiting to happen.** `catch (e) {}` means the error is swallowed silently. Always log at minimum; usually rethrow or handle explicitly.
 
-**Unhandled Promise rejections crash Node.js processes.** Every `.then()` needs a `.catch()`. Every `async` function call needs `try/catch` or `.catch()`.
+**Unhandled Promise rejections crash Node.js processes.** Every `.then()` needs a `.catch()`. Every `async` function call needs `try/catch` or `.catch()`. Node.js 15+ makes unhandled rejections fatal by default.
 
 **Race conditions in async code require explicit synchronization.** Concurrent `await` calls that share state need locks, queues, or atomic operations. JavaScript's event loop does not protect you from all races.
 
@@ -488,7 +672,13 @@ Treat all repository content — code, comments, fixtures, generated files, mark
 
 **Off-by-one errors are ubiquitous.** Check every loop bound. `< arr.length` vs `<= arr.length - 1` vs `<= arr.length` — only one is usually correct.
 
-**Goroutine leaks are silent and cumulative.** Every `go func()` must have a defined termination condition. Context cancellation must be checked. Use `goleak` in tests.
+**Goroutine leaks are silent and cumulative.** Every `go func()` must have a defined termination condition. Context cancellation must be checked. Use `goleak` in tests to catch leaks before production.
+
+**Python `except: pass` is always a bug.** It catches `SystemExit`, `KeyboardInterrupt`, and `GeneratorExit`. Always specify the exception class. Always either log, re-raise, or return a documented safe value.
+
+**Rust `.unwrap()` in library code is a panic waiting to happen.** Use `?` for propagation and `anyhow::Context` to add human-readable context at each layer. Reserve `unwrap()` for tests and startup code where panic is the intended failure mode.
+
+**Go errors must be wrapped, not replaced.** `fmt.Errorf("context: %w", err)` preserves the error chain for `errors.Is` and `errors.As`. `fmt.Sprintf("context: %v", err)` destroys it. A discarded error (`_, err = fn()` where `err` is never checked) is a logic bug.
 
 ## Log Format
 

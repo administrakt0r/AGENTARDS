@@ -63,11 +63,26 @@ npx madge --circular --extensions ts,js src/ 2>/dev/null || \
   npx madge --circular --extensions ts,js . 2>/dev/null || \
   echo 'madge not available — install with: npm i -D madge'
 
-# Go: import cycles surface in build
+# Go: import cycles surface in build (compiler catches all of them)
 [ -f go.mod ] && go build ./... 2>&1 | grep 'import cycle' | head -10
 
-# Python: detect via grep heuristic (A imports B, B imports A)
-find . -maxdepth 5 -name '*.py' ! -path '*/site-packages/*' 2>/dev/null | while read -r f; do
+# Go: direct DB driver or GORM use in handler packages (layer violation)
+[ -f go.mod ] && find . -maxdepth 6 \
+  \( -path '*/handler*/*' -o -path '*/http/*' -o -path '*/api/*' -o -path '*/controller*/*' \) \
+  -name '*.go' ! -path '*/vendor/*' 2>/dev/null | while read -r f; do
+  if rg -q '"database/sql"\|"gorm.io/gorm"\|"github.com/jmoiron/sqlx"\|"github.com/jackc/pgx' "$f" 2>/dev/null; then
+    echo "DB IMPORT IN HANDLER: $f"
+    rg -n '"database/sql"\|"gorm.io/gorm"\|"github.com/jmoiron/sqlx"\|"github.com/jackc/pgx' "$f" 2>/dev/null | head -3 | sed "s/^/  /"
+  fi
+done | head -30
+
+# Go: business logic packages that import delivery packages (wrong direction)
+[ -f go.mod ] && rg -rn '"net/http"\|"github.com/gin-gonic/gin"\|"github.com/labstack/echo"' \
+  --include='*.go' --glob='!*_test.go' 2>/dev/null | \
+  grep -v '/handler\|/http\|/api\|/cmd\|/main\|vendor' | head -20
+
+# Python: detect circular imports via grep heuristic (A imports B, B imports A)
+find . -maxdepth 5 -name '*.py' ! -path '*/site-packages/*' ! -path '*/__pycache__/*' 2>/dev/null | while read -r f; do
   module=$(basename "$f" .py)
   rg -l "^from.*import.*${module}\b\|^import.*${module}\b" --include='*.py' 2>/dev/null | grep -v "$f" | while read -r other; do
     other_module=$(basename "$other" .py)
@@ -76,12 +91,16 @@ find . -maxdepth 5 -name '*.py' ! -path '*/site-packages/*' 2>/dev/null | while 
     fi
   done
 done | sort -u | head -20
+
+# Rust: modules that should not depend on each other
+# (Rust's module system is enforced by the compiler; check mod.rs / lib.rs for pub use patterns)
+[ -f Cargo.toml ] && rg -n "^pub use\|^pub mod" --include='*.rs' ! -path '*/target/*' 2>/dev/null | head -30
 ```
 
 ### DB / ORM Access in Route Handlers (Missing Service Layer)
 
 ```bash
-# Direct ORM use in route/controller/handler files
+# TypeScript/JavaScript: direct ORM use in route/controller/handler files
 find . -maxdepth 5 \( -path '*/routes/*' -o -path '*/controllers/*' -o -path '*/handlers/*' -o -path '*/pages/api/*' -o -path '*/app/api/*' \) \( -name '*.ts' -o -name '*.js' \) ! -path '*/node_modules/*' 2>/dev/null | while read -r f; do
   if rg -q 'prisma\.\|db\.query\|knex(\|Model\.find\|\.save(\|\.create(\|repository\.' "$f" 2>/dev/null; then
     echo "DB IN ROUTE/HANDLER: $f"
@@ -89,12 +108,41 @@ find . -maxdepth 5 \( -path '*/routes/*' -o -path '*/controllers/*' -o -path '*/
   fi
 done | head -40
 
-# Django views with raw ORM queries (should use service/manager)
+# Django views with raw ORM queries (should use service layer/manager)
 find . -maxdepth 5 -name 'views.py' 2>/dev/null | while read -r f; do
   if rg -q '\.objects\.\|\.filter(\|\.get(\|\.create(' "$f" 2>/dev/null; then
     echo "ORM IN VIEW: $f"
+    rg -n '\.objects\.\|\.filter(\|\.get(\|\.create(' "$f" 2>/dev/null | head -3 | sed "s/^/  /"
   fi
-done | head -10
+done | head -20
+
+# Flask routes with direct SQLAlchemy (should be in service/repository)
+find . -maxdepth 5 \( -name 'routes.py' -o -name 'views.py' -o -name 'app.py' \) ! -path '*site-packages*' 2>/dev/null | while read -r f; do
+  if rg -q '@app\.route\|@blueprint\.' "$f" 2>/dev/null && rg -q 'db\.session\.\|\.query\.\|\.filter(' "$f" 2>/dev/null; then
+    echo "DB IN FLASK ROUTE: $f"
+    rg -n 'db\.session\.\|\.query\.\|\.filter(' "$f" 2>/dev/null | head -3 | sed "s/^/  /"
+  fi
+done | head -20
+
+# Go: gorm/sqlx used directly in HTTP handler files
+[ -f go.mod ] && find . -maxdepth 6 \
+  \( -path '*/handler*/*' -o -path '*/delivery/*' -o -path '*/transport/*' \) \
+  -name '*.go' ! -path '*/vendor/*' ! -name '*_test.go' 2>/dev/null | while read -r f; do
+  if rg -q '\.DB\.\|db\.Query\|db\.Exec\|\.First(\|\.Find(\|\.Create(' "$f" 2>/dev/null; then
+    echo "DB IN GO HANDLER: $f"
+    rg -n '\.DB\.\|db\.Query\|db\.Exec\|\.First(\|\.Find(\|\.Create(' "$f" 2>/dev/null | head -3 | sed "s/^/  /"
+  fi
+done | head -20
+
+# Rust: sqlx/diesel queries directly in handler functions (axum/actix)
+[ -f Cargo.toml ] && find . -maxdepth 5 \
+  \( -path '*/handlers/*' -o -path '*/routes/*' -o -path '*/api/*' \) \
+  -name '*.rs' ! -path '*/target/*' 2>/dev/null | while read -r f; do
+  if rg -q 'sqlx::query\|diesel::.*dsl\|\.execute(&pool\|\.fetch_all\|\.fetch_one' "$f" 2>/dev/null; then
+    echo "DB IN RUST HANDLER: $f"
+    rg -n 'sqlx::query\|diesel::.*dsl\|\.execute(&pool\|\.fetch_all\|\.fetch_one' "$f" 2>/dev/null | head -3 | sed "s/^/  /"
+  fi
+done | head -20
 ```
 
 ### Business Logic in UI Components
@@ -112,6 +160,14 @@ done | head -30
 find . -maxdepth 5 \( -path '*/pages/*' -o -path '*/app/*' \) \( -name '*.tsx' -o -name '*.jsx' \) ! -path '*/node_modules/*' 2>/dev/null | while read -r f; do
   if rg -q 'prisma\.\|db\.' "$f" 2>/dev/null; then
     echo "DB IN PAGE COMPONENT: $f"
+  fi
+done | head -15
+
+# Python: Jinja2/Django templates with business logic (calculations, conditionals on model fields)
+find . -maxdepth 6 \( -name '*.html' -o -name '*.j2' -o -name '*.jinja2' \) ! -path '*/node_modules/*' 2>/dev/null | while read -r f; do
+  if rg -q '\{\%.*for.*\%\}\|\{\%.*if.*queryset\|\.filter(\|\.all(' "$f" 2>/dev/null; then
+    echo "POSSIBLE BUSINESS LOGIC IN TEMPLATE: $f"
+    rg -n '\.filter(\|\.all(\|\.objects\.' "$f" 2>/dev/null | head -3 | sed "s/^/  /"
   fi
 done | head -15
 ```
@@ -132,6 +188,26 @@ done | sort -t'(' -k2 -rn | head -20
 find . -maxdepth 5 \( -name 'utils.*' -o -name 'helpers.*' -o -name 'shared.*' \) \( -name '*.ts' -o -name '*.js' -o -name '*.py' \) ! -path '*/node_modules/*' 2>/dev/null | while read -r f; do
   lines=$(wc -l < "$f")
   [ "$lines" -gt 300 ] && echo "BLOATED UTIL ($lines lines): $f"
+done | head -10
+
+# Python: modules imported by many others (>8 importers)
+find . -maxdepth 5 -name '*.py' ! -path '*/__pycache__/*' ! -path '*/site-packages/*' 2>/dev/null | while read -r f; do
+  module=$(basename "$f" .py)
+  echo "$module" | grep -qE '^(__init__|conftest|settings|config)$' && continue
+  import_count=$(rg -l "^import ${module}\b\|^from ${module} import" --include='*.py' 2>/dev/null | grep -v "$f" | wc -l)
+  [ "$import_count" -gt 8 ] && echo "PYTHON GOD MODULE ($import_count importers): $f"
+done | sort -t'(' -k2 -rn | head -10
+
+# Go: large files with many exported symbols (>25 exported funcs/types)
+[ -f go.mod ] && find . -maxdepth 5 -name '*.go' ! -path '*/vendor/*' ! -name '*_test.go' 2>/dev/null | while read -r f; do
+  exports=$(rg -c '^func [A-Z]|^type [A-Z]' "$f" 2>/dev/null || echo 0)
+  [ "$exports" -gt 25 ] && echo "GO GOD FILE ($exports exports): $f"
+done | sort -t'(' -k2 -rn | head -10
+
+# Rust: lib.rs or mod.rs with excessive pub re-exports (>20)
+[ -f Cargo.toml ] && find . -maxdepth 5 \( -name 'lib.rs' -o -name 'mod.rs' \) ! -path '*/target/*' 2>/dev/null | while read -r f; do
+  pub_count=$(rg -c '^pub use|^pub mod' "$f" 2>/dev/null || echo 0)
+  [ "$pub_count" -gt 20 ] && echo "OVERCOUPLED RUST MODULE ($pub_count pub items): $f"
 done | head -10
 ```
 
@@ -298,6 +374,147 @@ import { processEvent } from './module-a';
 export function handleEvent(e: Event) { return processEvent(e); }
 ```
 
+### Fix Pattern: Python — Extract Service Layer from Django View
+
+```python
+# BEFORE: ORM query directly in view (layer violation)
+# views.py
+from django.http import JsonResponse
+from .models import Order, User
+
+def create_order(request):
+    user = User.objects.get(id=request.POST['user_id'])
+    if not user.is_active:
+        return JsonResponse({'error': 'User inactive'}, status=403)
+    order = Order.objects.create(
+        user=user,
+        total=sum(float(i['price']) * int(i['qty']) for i in request.POST.getlist('items')),
+        status='pending',
+    )
+    return JsonResponse({'id': order.id, 'total': str(order.total)}, status=201)
+
+# AFTER: view delegates to service; service owns domain logic
+# services/order_service.py  (no Django HTTP imports)
+from decimal import Decimal
+from .repositories import OrderRepository, UserRepository
+from .exceptions import ForbiddenError, NotFoundError
+
+class OrderService:
+    def __init__(self, user_repo: UserRepository, order_repo: OrderRepository) -> None:
+        self._user_repo = user_repo
+        self._order_repo = order_repo
+
+    def create_order(self, user_id: str, items: list) -> dict:
+        user = self._user_repo.find_by_id(user_id)
+        if user is None:
+            raise NotFoundError(f"User {user_id} not found")
+        if not user.is_active:
+            raise ForbiddenError("User account is inactive")
+        total = sum(Decimal(item['price']) * item['quantity'] for item in items)
+        order = self._order_repo.create(user_id=user_id, items=items, total=total)
+        return {'id': str(order.id), 'total': str(order.total)}
+
+# views.py -- only HTTP concerns remain
+from django.http import JsonResponse
+from .services.order_service import OrderService
+from .exceptions import ForbiddenError, NotFoundError
+
+def create_order(request):
+    service = OrderService(...)  # inject via DI container
+    try:
+        result = service.create_order(request.POST['user_id'], request.POST.getlist('items'))
+        return JsonResponse(result, status=201)
+    except NotFoundError as e:
+        return JsonResponse({'error': str(e)}, status=404)
+    except ForbiddenError as e:
+        return JsonResponse({'error': str(e)}, status=403)
+```
+
+### Fix Pattern: Go — Repository Interface to Break Handler→DB Coupling
+
+```go
+// BEFORE: handler directly calls GORM (infrastructure leaks into delivery layer)
+// handler/order_handler.go
+func (h *OrderHandler) Create(c *gin.Context) {
+    var req CreateOrderRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    // Layer violation: GORM query in HTTP handler
+    var user User
+    if err := h.db.First(&user, req.UserID).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+        return
+    }
+    order := Order{UserID: req.UserID, Status: "pending"}
+    h.db.Create(&order)
+    c.JSON(http.StatusCreated, order)
+}
+
+// AFTER: handler -> service -> repository interface
+
+// domain/repository.go  (interface in domain -- zero infrastructure imports)
+package domain
+
+import "context"
+
+type UserRepository interface {
+    FindByID(ctx context.Context, id uint) (*User, error)
+}
+type OrderRepository interface {
+    Create(ctx context.Context, order *Order) error
+}
+
+// service/order_service.go  (depends on interfaces, testable with mocks)
+package service
+
+type OrderService struct {
+    users  domain.UserRepository
+    orders domain.OrderRepository
+}
+
+func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*domain.Order, error) {
+    user, err := s.users.FindByID(ctx, userID)
+    if err != nil {
+        return nil, fmt.Errorf("finding user: %w", err)
+    }
+    if !user.IsActive {
+        return nil, domain.ErrUserInactive
+    }
+    order := &domain.Order{UserID: userID, Status: "pending"}
+    return order, s.orders.Create(ctx, order)
+}
+
+// infrastructure/gorm_order_repo.go  (GORM lives here only)
+package infrastructure
+
+type GormOrderRepository struct{ db *gorm.DB }
+
+func (r *GormOrderRepository) Create(ctx context.Context, order *domain.Order) error {
+    return r.db.WithContext(ctx).Create(order).Error
+}
+
+// handler/order_handler.go  (only HTTP concerns -- no GORM)
+func (h *OrderHandler) Create(c *gin.Context) {
+    var req CreateOrderRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    order, err := h.orderService.CreateOrder(c.Request.Context(), req.UserID)
+    if errors.Is(err, domain.ErrUserInactive) {
+        c.JSON(http.StatusForbidden, gin.H{"error": "user account is inactive"})
+        return
+    }
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create order"})
+        return
+    }
+    c.JSON(http.StatusCreated, order)
+}
+```
+
 ### Create ADR for Major Architecture Decision
 
 ```markdown
@@ -445,12 +662,35 @@ If a finding fits more than one domain, pick the most specific owner. Never dupl
 
 ## Industry Standards (verified 2026-10 via Context7)
 
-Sources: `go.dev/doc/modules/layout`, `martinfowler.com/bliki/BoundedContext.html`, `docs.python.org/3/tutorial/modules.html`
+Sources: `go.dev/doc/modules/layout`, `martinfowler.com/bliki/BoundedContext.html`, `docs.djangoproject.com/en/stable/misc/design-philosophies/`, `docs.python.org/3/tutorial/modules.html`, `adr.github.io/`
 
-- Dependencies point toward the architecture the repository already uses. A small fix does not add a new layer.
-- A circular import or a domain package importing a delivery package is evidence. Confirm the cycle with the compiler or import graph before moving code.
-- Public packages stay small. Hide construction details behind the package the rest of the repo already calls.
-- Generated code, vendored code, and migration snapshots are boundaries, not refactor targets, unless the task is about that generator.
+### Layering Rules (all stacks)
+- **Dependency direction is always inward.** Delivery (HTTP, CLI, gRPC) -> Application/Service -> Domain -> Infrastructure. Never reverse.
+- **Domain packages must not import infrastructure.** A service that imports `gorm`, `prisma`, or `sqlalchemy` directly is a layer violation. Inject a repository interface instead.
+- **Circular imports are architecture rot.** The Go compiler, TypeScript `madge`, and Python import graph tools catch them statically. Fix before shipping.
+- **One responsibility per module.** A file with >25 exported symbols or imported by >10 others is a God module. Extract focused sub-modules.
+
+### TypeScript / Node.js
+- Route handlers (Express, Fastify, Next.js API routes) parse the request, call a service, and serialize the response. ORM or DB code in route files is a violation. (Source: `fastify.dev/docs/latest/Guides/Getting-Started/`)
+- Use interface-based dependency injection to keep domain services testable without a database. (`typescriptlang.org/docs/handbook/2/objects.html`)
+
+### Python
+- Django views should delegate to service objects or managers; raw `Model.objects.filter()` in views couples HTTP to persistence. (`docs.djangoproject.com/en/stable/topics/db/managers/`)
+- Flask blueprints and FastAPI routers are delivery; SQLAlchemy sessions belong in a repository layer. (`fastapi.tiangolo.com/tutorial/sql-databases/`)
+- Use `Protocol` (PEP 544) or ABCs to define repository interfaces in the domain layer; implementations live in `infrastructure/`. (`peps.python.org/pep-0544/`)
+
+### Go
+- The standard Go project layout enforces module boundaries: delivery code in `cmd/` or `internal/transport/`; domain logic in `internal/domain/`. (`go.dev/doc/modules/layout`)
+- Interfaces belong in the package that **uses** them, not the package that implements them (accept interfaces, return concrete types). (`go.dev/wiki/CodeReviewComments#interfaces`)
+- `go build ./...` catches all import cycles at compile time. `go vet ./...` catches structural issues.
+
+### Rust
+- Crate boundaries enforce module separation. Keep handler crates (`axum`, `actix-web`) separate from domain crates; share types via a `types` crate. (`doc.rust-lang.org/cargo/reference/workspaces.html`)
+
+### Architecture Decision Records (ADRs)
+- Every significant structural decision (new layer, new pattern, removal of abstraction) gets an ADR in `docs/adr/`. Format: Context -> Decision -> Consequences. (`adr.github.io/`)
+- Generated code, vendored code, and migration snapshots are not refactor targets unless the generator is being changed.
+
 ## Boundaries
 
 ✅ **Always do:** verify build and tests pass after every layer move; introduce interfaces rather than rewriting implementations; write an ADR for any significant structural decision made

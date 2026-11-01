@@ -105,6 +105,31 @@ Read this file before running Agenticus Improvicus. Append only useful run summa
   6. **Expanded Industry Standards block:** 4 bullets → 11 with direct hyperlinked sources for Go (`pkg.go.dev`), Rust (`doc.rust-lang.org/rustdoc`), Python (Google style guide), PHP (`phpdoc.org`), Java (Oracle Javadoc), Keep-a-Changelog, and Conventional Commits.
 - **Verification:** Code fences balanced (40/40), all 5 steps present, Industry Standards ✓, Boundaries ✓, Safety ✓. Line count: 505 → 734.
 
+## 2026-11-02 - Hunter Agent Multi-Language Fix Pattern Elevation
+- **Target:** `agents/hunter.md`
+- **Selection rationale:** `hunter.md` had 0 before/after fix patterns for Python, Rust, or Go despite having robust Step 2 detection for all four languages. The 7 existing Step 3 patterns were skeleton-thin (no BEFORE/AFTER labels, 6–15 lines each, all TypeScript/Go-only). Industry Standards had only 3 generic bullets with no version details or language-specific guidance. Crucially missing: Python `asyncio.gather` error inspection, Rust `unwrap()` → `?` migration, and Go `fmt.Errorf("%w")` error wrapping — all canonical patterns agents need to apply autonomously.
+- **What was missing:**
+  1. 0 Python fix patterns — no bare `except:` repair, no `asyncio.gather` result inspection
+  2. 0 Rust fix patterns — no `unwrap()` → `?` + `anyhow::Context` migration
+  3. Existing TS/Go patterns lacked BEFORE/AFTER labels, rationale comments, and regression test scaffolding
+  4. Step 2 Runtime Errors section: no Python `asyncio.gather(return_exceptions=True)` inspection detection; no Rust `unwrap` in non-test code scan
+  5. Industry Standards: 3 bullets, 3 URLs, no version specifics, no Rust/Python guidance
+  6. Senior Engineering Standards: 8 bullets, all TS/Go — no Python `except` or Rust `unwrap` guidance
+- **Improvements applied:**
+  1. Replaced 7 thin Step 3 patterns with 10 fully annotated `### Fix Pattern:` sections covering TypeScript (3), Go (2), Python (2), and Rust (1)
+  2. All patterns now have `// BEFORE` and `// AFTER` blocks with inline `❌` / `✅` annotations explaining the defect and the fix
+  3. TypeScript patterns upgraded: empty-catch now includes regression test scaffold; unhandled-rejection shows full async/await conversion; JSON.parse now shows a reusable `safeParse<T>` utility; null-dereference shows multi-level optional chaining + fallback; useEffect shows both interval AND event listener cleanup with correct dependency array
+  4. New Go patterns: goroutine leak → context-aware worker with `sync.WaitGroup`, back-off sleep, and `cancel()`/`wg.Wait()` shutdown sequence; ignored error → `fmt.Errorf("%w", err)` wrapping with `errors.Is`/`errors.As` callsite note and `defer stmt.Close()`
+  5. New Python patterns: bare `except:` → specific exception hierarchy with `raise ... from exc` chaining; `asyncio.gather(return_exceptions=True)` → result inspection loop with per-task logging and success-list return
+  6. New Rust pattern: `.unwrap()` → `?` with `anyhow::Result<T>` and `.with_context(|| format!(...))` at two boundaries; note on `fn main() -> anyhow::Result<()>` for automatic error display
+  7. Step 2 Runtime Errors: added Python `asyncio.gather` inspection detection and Rust `unwrap/expect` in non-test code scan (14 new `rg` command lines)
+  8. Industry Standards: 3 bullets → 10, added Go 1.13 error wrapping (`%w`, `errors.Is/As`, `goleak`), Go race detector CI usage, Python `asyncio.gather` inspection contract, Python exception chaining syntax, Rust `anyhow` vs `thiserror` distinction, Node.js 15+ unhandled rejection behavior, React `useEffect` dependency array guidance
+  9. Senior Engineering Standards: 8 → 11 bullets, added Python `except: pass`, Rust `.unwrap()` in library code, Go error wrapping vs replacing
+- **Verification:** Markdown code fences balanced (40 markers — 20 pairs ✅), all 5 required steps present ✅, Industry Standards ✅, Boundaries ✅, Safety ✅, Senior Engineering Standards ✅, Log Format ✅, Cross-Domain Handoff ✅, `git diff --check` clean ✅.
+- **rg command count:** 31 → 34 (+3 new detection commands)
+- **Fix pattern count:** 7 (thin, TS/Go-only) → 10 (4 languages, annotated BEFORE/AFTER)
+- **Line count:** 503 → 693 (+190 lines net, 284 inserted / 94 deleted)
+
 ## 2026-11-01 - Testing Agent Comprehensive Elevation
 - **Target:** `agents/testing.md`
 - **Selection rationale:** Only BASE-level agent with 0 before/after fix patterns for Go, Python, and Rust — Step 3 was entirely JS/TS-centric despite Step 2 having multi-language detection. Industry Standards block had 4 thin bullets with no version pinning. No Go table-driven test patterns (the canonical Go idiom), no Python `pytest.mark.parametrize` patterns, no Rust `#[cfg(test)]` patterns. Copy-paste test anti-pattern detection was entirely absent from Step 2.
@@ -136,3 +161,30 @@ Read this file before running Agenticus Improvicus. Append only useful run summa
 - **rg command count:** 15 → 24 (+9)
 - **Fix pattern count:** 5 (TS-only) → 10 (4 languages)
 - **Line count:** 512 → 804 (+292 lines net)
+
+## 2026-11-02 - architect.md — Multi-Language Architecture Detection & Fix Examples
+
+- **Target:** `agents/architect.md`
+- **What was missing:**
+  - `rg` command count was only 13 (lowest of all 26 agents) — detection was TypeScript/JS-only
+  - No Go handler→DB violation detection (gorm/sqlx in handler files)
+  - No Python Flask/FastAPI route layer violation detection
+  - No Rust module architecture detection
+  - No Python or Go God Module detection
+  - Zero `# BEFORE / # AFTER` fix examples across non-TypeScript stacks
+  - Industry Standards block was 4 bullets citing 3 generic sources with no stack-specific guidance
+- **Improvements applied:**
+  1. **Circular dependency detection:** Added Go handler→DB import scan (`rg` for `gorm.io/gorm`, `jackc/pgx` in handler directories), Rust `pub use`/`pub mod` excess detection
+  2. **DB in route handler detection:** Expanded from 2 languages to 5: TypeScript, Django views, Flask/FastAPI routes, Go handler packages, Rust axum/actix handlers
+  3. **God Module detection:** Added Python (>8 importers), Go (>25 exported symbols per file), Rust (>20 `pub use`/`pub mod` in lib.rs/mod.rs)
+  4. **Fix examples:** Added `### Fix Pattern: Python — Extract Service Layer from Django View` (50-line BEFORE/AFTER in Python), `### Fix Pattern: Go — Repository Interface to Break Handler→DB Coupling` (60-line BEFORE/AFTER in Go)
+  5. **Industry Standards:** Expanded from 4 bullets (3 sources) to 5 language-grouped subsections (TypeScript, Python, Go, Rust, ADRs) with 12 authoritative citations including `fastapi.tiangolo.com`, `peps.python.org/pep-0544/`, `go.dev/wiki/CodeReviewComments#interfaces`, `doc.rust-lang.org/cargo/reference/workspaces.html`, `adr.github.io/`
+- **Verification:**
+  - Code fences balanced: PASS (32 markers — all even)
+  - All 5 steps present: PASS
+  - Industry Standards section: PASS
+  - Boundaries present: PASS
+  - Safety present: PASS
+  - `rg` command count: 29 (was 13, +16 new commands)
+  - Line count: 732 (was 492, +240 lines)
+  - `git diff --stat`: 251 insertions, 11 deletions
