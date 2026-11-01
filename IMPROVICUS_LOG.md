@@ -2,6 +2,24 @@
 
 Read this file before running Agenticus Improvicus. Append only useful run summaries and prompt improvements.
 
+## 2026-11-01 - Syncer Prompt Refinement
+- **Target:** `agents/syncer.md`
+- **What was missing:**
+  - `syncer.md` had **0** `rg` commands in the entire file; all detection was abstract prose or legacy `grep` loops.
+  - Step 2 lacked diagnostic commands for detecting markdown anti-patterns (unbalanced code fences, duplicate headings, stale root log paths, thin handoff tables, missing required sections).
+  - Lacked concrete before/after examples of additive section merges, handoff table updates, log path migrations, and project customization conflict preservation.
+  - Verification section lacked explicit exit code checks, fence balancing audits, and git status validation.
+  - Industry Standards was thin (4 bullets), lacking specific API details (GitHub rate limits, Python `json` parsing without `jq`, `rg` version flags).
+- **Improvements applied:**
+  - Added 27 concrete, executable `rg` commands across Step 2 and Step 4 with proper flags (`--glob`, `-n`, `-c`, `-q`).
+  - Added 4 robust before/after code examples: adding missing Senior Engineering Standards, appending rows to Cross-Domain Handoff, fixing stale log path references, and resolving conflict by preserving project-specific boundaries.
+  - Upgraded Step 2 problem detection with automated scans for unbalanced code fences, duplicate headings, stale upstream URLs, and thin handoff tables.
+  - Expanded Step 4 verification with 8 discrete checks including fence pairing tests, exit status handling, and diff inspection.
+  - Enhanced Industry Standards with Context7 citations (`docs.github.com/en/rest`, `BurntSushi/ripgrep`), GitHub API rate-limit realities, and Python parsing idioms.
+  - Added 2 new Senior Engineering Standards bullets regarding `rg` usage and evaluating line-count deltas safely.
+- **Verification:** Markdown code fences balanced (38 markers, 19 pairs ✅), all 5 required steps present ✅, all required sections present ✅, `git diff --check` clean ✅.
+- **Line count:** 362 → 627 (+265 lines net).
+
 ## 2026-11-01 - Refactorer Prompt Refinement
 - **Target:** `agents/refactorer.md`
 - **What was missing:**
