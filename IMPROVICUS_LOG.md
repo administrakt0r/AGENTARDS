@@ -37,3 +37,35 @@ Read this file before running Agenticus Improvicus. Append only useful run summa
   - Added `## Industry Standards (verified 2026-10 via Context7)` covering Cloudflare D1 statement batching, Workers edge caching, React 19 SSR tree-shaking, Compose UI memoization, and pooled backend I/O.
   - Added standard `## Log Format` for appending entries to `./BOLT_LOG.md`.
 - **Verification:** All markdown code fences balanced, all 5 steps present, Context7 section verified, Boundaries and Safety preserved.
+
+## 2026-11-01 - Linter Agent Diagnostic Coverage Expansion
+
+- **Target:** `agents/linter.md`
+- **Selection rationale:** `linter.md` had the lowest `rg` command count (4) of all 26 agents — far below the catalog median of 20+. Critically, Step 2 ("Find Problems") had zero grep-based fallbacks for when no linter is configured yet. Every other detection signal relied on tool-native CLI commands (ESLint, Prettier, ruff, gofmt) that fail silently in new projects or bare environments. The agent was effectively blind in the most common situation where it is most needed.
+- **What was missing:**
+  1. No `rg` diagnostics for Python/Go/Rust naming violations
+  2. No detection of magic string literals and hardcoded URLs/ports
+  3. No quote style inconsistency scan (mixed single/double, f-string vs %-format)
+  4. No TODO/FIXME leakage detection with ticket-reference enforcement
+  5. No inline disable comment audit (`eslint-disable`, `@ts-ignore`, `# noqa`, `//nolint`)
+  6. No trailing-whitespace grep fallback (only relied on .editorconfig tooling)
+  7. Before/after fix examples only for JS/TS boolean naming and console.log — no Go, Rust, Python, or import-ordering examples
+  8. Industry Standards cited only 3 sources with 4 generic bullets; no version-specific guidance
+- **Improvements applied:**
+  1. Added 5 new Step 2 diagnostic subsections with 20+ concrete `rg` commands (rg count: 4 → 24)
+  2. Added naming convention checks for Python (snake_case functions, PascalCase classes), Go (exported PascalCase), Rust (pub fn snake_case, type PascalCase)
+  3. Added magic string detection: hardcoded localhost URLs, raw port integers, repeated string literals (3+ occurrences)
+  4. Added quote style inconsistency scan for JS/TS (mixed single/double) and Python (f-string vs %-format)
+  5. Added TODO/FIXME leakage scan with ticket-reference enforcement pattern
+  6. Added inline disable comment audit across TS (`eslint-disable`, `@ts-ignore`), Python (`# noqa`), Go (`//nolint`)
+  7. Added trailing-whitespace grep fallback as tool-agnostic safety net
+  8. Expanded fix examples from 2 to 8: added TypeScript import ordering, magic string → constant, Python naming, Go gofmt/naming, Rust naming, inline disable annotation
+  9. Upgraded Industry Standards: 4 sources → 6 sources, 4 bullets → 10 bullets, added ESLint 9 flat config migration note, typescript-eslint v8 setup, Prettier 3 defaults, Ruff vs flake8/black conflict warning, gofmt non-configurability rationale, rustfmt workspace usage
+- **Verification:**
+  - Markdown code fences: balanced (62 markers — 31 pairs) ✅
+  - All 5 required steps present ✅
+  - Industry Standards section present ✅
+  - Boundaries and Safety sections present ✅
+  - Log-First Protocol present ✅
+  - `git diff --check`: clean (no trailing whitespace) ✅
+- **Line count:** 480 → 717 (+237 lines net, 244 inserted, 7 deleted)

@@ -114,6 +114,110 @@ rg -n 'const (active|enabled|loading|visible|open|valid|ready|done|success)\s*='
 # Constants not in UPPER_SNAKE_CASE (at module level)
 rg -n '^const [a-z][a-zA-Z]+ =' --include='*.ts' --include='*.js' 2>/dev/null | \
   grep -v 'node_modules\|test\|spec' | head -20
+
+# Python functions not following snake_case
+rg -n '^def [A-Z]\w*\s*\(' --include='*.py' \
+  ! -path '*/test*' 2>/dev/null | head -20
+
+# Python classes not following PascalCase
+rg -n '^class [a-z]\w*[:(]' --include='*.py' 2>/dev/null | head -20
+
+# Go exported functions/types not PascalCase (false-positive check — must start uppercase)
+rg -n '^func [a-z]\w+\(' --include='*.go' \
+  ! -path '*/vendor/*' 2>/dev/null | head -20
+
+# Rust: pub items not following snake_case for functions, PascalCase for types
+rg -n '^pub (fn [A-Z]|struct [a-z]|enum [a-z]|trait [a-z])' --include='*.rs' 2>/dev/null | head -20
+```
+
+### Magic Strings and Hardcoded Values
+
+```bash
+# Hardcoded localhost URLs (should use env vars or config constants)
+rg -n 'http://localhost:[0-9]+\|http://127\.0\.0\.1:[0-9]+' \
+  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.py' --include='*.go' \
+  --glob='!*.test.*' --glob='!*.spec.*' --glob='!**/__tests__/**' \
+  ! -path '*/node_modules/*' 2>/dev/null | head -20
+
+# Hardcoded port numbers as raw integers (not constants)
+rg -n '\bport\s*[=:]\s*[0-9]{4,5}\b' \
+  --include='*.ts' --include='*.js' --include='*.py' --include='*.go' \
+  --glob='!*.test.*' --glob='!*.spec.*' ! -path '*/node_modules/*' 2>/dev/null | head -20
+
+# Repeated string literals that should be constants (3+ identical quoted strings in one file)
+rg -o '"[A-Z_][A-Z0-9_]{4,}"' \
+  --include='*.ts' --include='*.tsx' --include='*.js' \
+  ! -path '*/node_modules/*' ! -path '*/dist/*' 2>/dev/null | \
+  sort | uniq -c | sort -rn | awk '$1 >= 3 {print "REPEATED LITERAL (" $1 "x):", $2}' | head -20
+```
+
+### Quote Style Inconsistency
+
+```bash
+# Mixed single/double quotes in TypeScript/JavaScript (detect files using both)
+find . -maxdepth 6 \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) \
+  ! -path '*/node_modules/*' ! -path '*/dist/*' ! -path '*/.next/*' 2>/dev/null | while read -r f; do
+  singles=$(rg -c "'" "$f" 2>/dev/null || echo 0)
+  doubles=$(rg -c '"' "$f" 2>/dev/null || echo 0)
+  # Flag files with significant presence of both styles (not just JSX attribute quotes)
+  if [ "$singles" -gt 5 ] && [ "$doubles" -gt 5 ]; then
+    echo "MIXED QUOTES ($singles single, $doubles double): $f"
+  fi
+done | head -20
+
+# Python: mixed f-string and %-format in same file
+rg -l 'f".*{' --include='*.py' 2>/dev/null | while read -r f; do
+  if rg -q '%s\|%d\|% ' "$f" 2>/dev/null; then
+    echo "MIXED STRING FORMAT (f-string and %-format): $f"
+  fi
+done | head -10
+```
+
+### TODO / FIXME Leakage in Production Code
+
+```bash
+# TODOs that have aged into permanent technical debt
+rg -n '//\s*(TODO|FIXME|HACK|XXX|TEMP|KLUDGE)\b' \
+  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
+  ! -path '*/node_modules/*' ! -path '*/dist/*' 2>/dev/null | head -30
+
+rg -n '#\s*(TODO|FIXME|HACK|XXX|TEMP)\b' \
+  --include='*.py' --include='*.go' --include='*.rs' --include='*.sh' 2>/dev/null | head -20
+
+# TODOs without a ticket reference (no JIRA/GitHub issue number)
+rg -n '(TODO|FIXME)(?!\s*(#|https?://|\[[A-Z]+-[0-9]+\]))' \
+  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.py' --include='*.go' \
+  ! -path '*/node_modules/*' 2>/dev/null | head -20
+```
+
+### Inline Disable Comment Audit
+
+```bash
+# ESLint disable-line comments (should be rare and explained)
+rg -n 'eslint-disable(-next-line)?\b' \
+  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
+  ! -path '*/node_modules/*' 2>/dev/null | head -20
+
+# TypeScript suppression directives without explanation comment
+rg -n '@ts-ignore(?!\s*--)\|@ts-nocheck' \
+  --include='*.ts' --include='*.tsx' 2>/dev/null | head -20
+
+# Python noqa without rule code (blanket suppression)
+rg -n '#\s*noqa\s*$' --include='*.py' 2>/dev/null | head -20
+
+# Go nolint without linter name
+rg -n '//nolint\b(?!:\w)' --include='*.go' ! -path '*/vendor/*' 2>/dev/null | head -20
+```
+
+### Trailing Whitespace (grep fallback when no editor config gate)
+
+```bash
+# Files with trailing whitespace (rg approach — faster than find+grep)
+rg -n '\s+$' \
+  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
+  --include='*.py' --include='*.go' --include='*.rs' \
+  ! -path '*/node_modules/*' ! -path '*/dist/*' ! -path '*/vendor/*' 2>/dev/null | \
+  head -30
 ```
 
 ### Dead Console Logs in Production Code
@@ -267,12 +371,12 @@ cargo fmt 2>/dev/null || true
 ### Fix Boolean Naming
 
 ```typescript
-// Before
+// BEFORE — no semantic prefix; ambiguous when read in boolean context
 const loading = true;
 const active = user.status === 'active';
 const visible = modal.open;
 
-// After
+// AFTER — is/has/can prefix makes intent unambiguous at call sites
 const isLoading = true;
 const isActive = user.status === 'active';
 const isVisible = modal.open;
@@ -281,12 +385,139 @@ const isVisible = modal.open;
 ### Fix Console Leaks
 
 ```typescript
-// Before
-console.log('Processing order', orderId);
+// BEFORE — raw console.log ships to production logs as unstructured text
+async function processOrder(orderId: string): Promise<Order> {
+  console.log('Processing order', orderId);
+  const order = await db.orders.findById(orderId);
+  console.log('Order fetched', order);
+  return order;
+}
 
-// After: replace with structured logger
+// AFTER — structured logger: machine-parseable, level-aware, no production noise
 import { logger } from '../lib/logger';
-logger.info({ orderId }, 'Processing order');
+
+async function processOrder(orderId: string): Promise<Order> {
+  logger.info({ orderId }, 'Processing order');
+  const order = await db.orders.findById(orderId);
+  logger.debug({ orderId, status: order.status }, 'Order fetched');
+  return order;
+}
+```
+
+### Fix Import Ordering (TypeScript)
+
+```typescript
+// BEFORE — relative import before external library; breaks eslint import/order rule
+import { formatDate } from './utils/date';
+import { parseISO } from 'date-fns';
+import React, { useState } from 'react';
+import type { User } from '../types/user';
+import { api } from '@/lib/api';
+
+// AFTER — external → workspace aliases → parent → sibling → types
+import React, { useState } from 'react';
+import { parseISO } from 'date-fns';
+
+import { api } from '@/lib/api';
+
+import type { User } from '../types/user';
+import { formatDate } from './utils/date';
+```
+
+### Fix Magic String to Named Constant
+
+```typescript
+// BEFORE — magic strings duplicated in 3 places; a typo causes a silent bug
+if (order.status === 'pending_payment') { ... }
+const pendingOrders = orders.filter(o => o.status === 'pending_payment');
+analytics.track('pending_payment');
+
+// AFTER — single source of truth; typos become compile errors
+export const ORDER_STATUS = {
+  PENDING_PAYMENT: 'pending_payment',
+  CONFIRMED: 'confirmed',
+  SHIPPED: 'shipped',
+  DELIVERED: 'delivered',
+} as const;
+export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
+
+if (order.status === ORDER_STATUS.PENDING_PAYMENT) { ... }
+const pendingOrders = orders.filter(o => o.status === ORDER_STATUS.PENDING_PAYMENT);
+analytics.track(ORDER_STATUS.PENDING_PAYMENT);
+```
+
+### Fix Python Naming Violation
+
+```python
+# BEFORE — function uses camelCase (PEP 8 violation), variable uses wrong prefix
+def getUserById(userId: int) -> User:
+    active = userId > 0          # misleading: boolean named as state noun
+    if not active:
+        raise ValueError("invalid")
+    return db.query(User).filter(User.id == userId).first()
+
+# AFTER — PEP 8 snake_case function name, boolean prefixed with is_
+def get_user_by_id(user_id: int) -> User:
+    is_valid_id = user_id > 0    # is_ prefix makes boolean intent clear
+    if not is_valid_id:
+        raise ValueError(f"Invalid user_id: {user_id}")
+    return db.query(User).filter(User.id == user_id).first()
+```
+
+### Fix Go Formatting and Naming
+
+```go
+// BEFORE — unexported function with inconsistent name; mixed tab/space indent
+func process_user( u User,db *sql.DB ) error{
+var result User
+err := db.QueryRow("SELECT * FROM users WHERE id = ?", u.ID).Scan(&result)
+if err != nil { return err }
+return nil
+}
+
+// AFTER — gofmt applied; exported correctly; idiomatic parameter naming
+func processUser(u User, db *sql.DB) error {
+	var result User
+	err := db.QueryRow("SELECT * FROM users WHERE id = ?", u.ID).Scan(&result)
+	if err != nil {
+		return fmt.Errorf("processUser: %w", err)
+	}
+	return nil
+}
+```
+
+### Fix Rust Naming Violation
+
+```rust
+// BEFORE — function follows camelCase (non-idiomatic in Rust); constant not SCREAMING_SNAKE_CASE
+fn calculateTotal(items: &[Item]) -> f64 {
+    let maxRetries = 3;  // local var camelCase — Rust clippy::mixed_case_idents warning
+    items.iter().map(|i| i.price * i.quantity as f64).sum()
+}
+
+// AFTER — Rust idioms: snake_case functions, UPPER_SNAKE_CASE constants, proper type annotation
+const MAX_RETRIES: u32 = 3;
+
+fn calculate_total(items: &[Item]) -> f64 {
+    items.iter().map(|i| i.price * i.quantity as f64).sum()
+}
+```
+
+### Fix Inline Disable Comment (Add Explanation)
+
+```typescript
+// BEFORE — blanket suppression with no explanation; masks real issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serialize(data: any): string {
+  return JSON.stringify(data);
+}
+
+// AFTER — narrow suppression with explanation; or better, remove it with a proper type
+// Receives arbitrary JSON from third-party SDK (no type definitions available)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- sdk-response: see GH#1234
+function serialize(data: Record<string, unknown>): string {
+  return JSON.stringify(data);
+}
 ```
 
 ### Add Pre-commit Hook (husky + lint-staged)
@@ -433,8 +664,14 @@ If a finding fits more than one domain, pick the most specific owner. Never dupl
 
 ## Industry Standards (verified 2026-10 via Context7)
 
-Sources: `eslint.org/docs/latest/`, `docs.astral.sh/ruff/`, `golangci-lint.run/usage/linters/`
+Sources: `eslint.org/docs/latest/`, `docs.astral.sh/ruff/rules/`, `golangci-lint.run/usage/linters/`, `prettier.io/docs/en/options.html`, `doc.rust-lang.org/rustfmt/`
 
+- **ESLint flat config** (`eslint.config.mjs`) is the current format as of ESLint 9. The legacy `.eslintrc.*` format is deprecated. New projects must use flat config; migrate existing projects when touching the config.
+- **`@typescript-eslint` v8+** ships `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` as a single `typescript-eslint` package. Use `tseslint.config()` as the canonical setup helper.
+- **Prettier 3** changed default for `trailingComma` to `"all"` and `bracketSpacing` remains `true`. Pin Prettier with an exact version in `devDependencies` to prevent config drift across machines.
+- **Ruff** (Python, `astral.sh/ruff`) replaces flake8 + isort + pyupgrade + pydocstyle in a single binary. Use `ruff check` + `ruff format`; do not run both ruff and flake8/black simultaneously.
+- **gofmt** is non-configurable by design. Never argue about Go formatting; just run `gofmt -w .`. Use `golangci-lint` for semantic checks (revive, errcheck, gocritic).
+- **rustfmt** respects `rustfmt.toml`. The stable option set is documented at `doc.rust-lang.org/rustfmt/`. Use `cargo fmt` (not `rustfmt` directly) to format the entire workspace.
 - Run the linter and formatter the repository configures. Do not add a second style system.
 - Fix the diagnostic. Disable a rule only where the config already documents that exception.
 - Format files you are already changing when the repository has no format gate. A repo-wide reformat is a separate task.
