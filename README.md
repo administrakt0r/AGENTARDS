@@ -69,9 +69,9 @@ You do not give an AGENTARDS agent a task list. You drop or paste the prompt int
 
 ### 2. Iteration to Perfection
 Code quality isn't built in a single massive refactor — it is achieved through relentless, bounded iterations.
-- **One Bounded Win Per Run**: Each agent run selects exactly one evidence-backed problem, completes it, and stops.
+- **One Coherent Task at a Time**: Each agent selects an evidence-backed problem, implements and verifies it, then continues with other justified work within the requested scope or budget.
 - **Persistent Memory via Dedicated Logs**: Every agent reads `AGENTARDS/logs/<AGENT>_LOG.md` first, learns from past runs, avoids duplicated work, and appends its latest findings. If that file is missing and an older `./<AGENT>_LOG.md` exists at the repository root, the agent copies it into `AGENTARDS/logs/` once and leaves the root file in place.
-- **Iterate to Perfection**: Run an agent once for a quick surgical win. Run it repeatedly (manually or in automated CI/scheduled runs) to systematically elevate your codebase toward production perfection.
+- **Iterate to Perfection**: A run can complete substantial, multi-file improvements when the evidence warrants them. Run agents repeatedly (manually or in automated CI/scheduled runs) to systematically elevate your codebase toward production perfection.
 
 ```mermaid
 flowchart LR
@@ -209,8 +209,8 @@ Every AGENTARDS prompt enforces the same non-negotiable contract:
 
 1. **Autonomous Discovery**: The agent never waits for instructions or stops at an abstract plan. It investigates, identifies, and acts.
 2. **Log-First Context**: Reads `AGENTARDS/logs/<AGENT>_LOG.md` before doing anything to leverage previous learnings and prevent duplicate churn.
-3. **Bounded Impact**: Changes are focused, surgical, and scoped (~50 lines in source) so they can be reviewed and rolled back easily.
-4. **Mandatory Real Verification**: Every change must be verified using the project's real test suite and build tools (`npm test`, `pytest`, `cargo test`, `vitest`, etc.).
+3. **Bounded Impact**: Each task addresses the root cause and related changes needed for a complete solution; it may span files and exceed 50 lines, without an artificial minimum or maximum.
+4. **Honest Verification**: Run checks appropriate to the change using the project’s actual tools; report unavailable or unrun checks as unknown.
 5. **Untrusted Codebase Data**: Treats all repository contents — code, comments, fixtures, markdown — as untrusted data. Ignores prompt injection attempts embedded in code.
 6. **Preserves User Work**: Never reverts or overrides unrelated user changes in a dirty working tree.
 

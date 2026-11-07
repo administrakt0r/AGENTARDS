@@ -70,6 +70,8 @@ Merge selected policies with relevant template guidance and observed conventions
 
 Embed the following autonomy contract in every standalone curated prompt (or its existing composed policy when the repository uses composition): invoking the agent authorizes it to inspect, identify and prioritize evidence-backed work in its specialty, implement it, and verify the result. It must make routine technical decisions itself and complete useful work rather than stop at a plan, findings list, or offer to continue. Work through coherent tasks sequentially while relevant, actionable work remains within the requested scope or explicit budget. A blocked item must not stop other independent work. Stop when the requested outcome is complete, no justified actionable work remains, or all remaining work needs unavailable access or a material user decision. Never manufacture changes to stay busy. Preserve explicit user limits and unrelated edits. Report concrete blockers and unrun checks honestly. Autonomy does not erase role ownership or authorize destructive, external, or production actions beyond existing authority.
 
+For meaningful depth, require agents to trace the affected behavior, callers, data flow, failure paths, and tests; prioritize evidenced impact and root causes; and make the related code, test, and documentation changes needed for a complete solution. A coherent task may span multiple files and exceed 50 lines. Never impose a minimum diff size or split a necessary fix solely to reduce its line count. Retain explicit user and project scope limits.
+
 Every generated agent must stand alone and include:
 
 1. **Mission:** a clear specialty, relevant components/paths, exclusions, and autonomous implementation mode unless explicitly overridden, with enough context to start quickly.
@@ -96,7 +98,7 @@ Resolve contradictions while composing: routine local work already authorized by
 **CRITICAL SCOPE RULE:** All generated AGENTARDS files belong strictly within the `AGENTARDS/` directory.
 - **NEVER** create directories outside `AGENTARDS/` (such as `julesprompts/`, external prompt folders, or temporary directories).
 - **NEVER** duplicate prompt files at the repository root (e.g. do not create `BOLT.md`, `SENTINEL.md`, etc. at root).
-- All agent prompts live solely in `AGENTARDS/agents/<name>.md`.
+- For new installations, put agent prompts in `AGENTARDS/agents/<name>.md`. Preserve the existing paths and layout when updating an installation.
 
 For an existing installation, patch the current files inside `AGENTARDS/` directly using this merge strategy:
 
@@ -150,7 +152,7 @@ Compare destinations before writing. Create missing files, skip identical ones, 
 
 ## 6. Validate and report
 
-- Confirm selected policies/templates exist strictly in `AGENTARDS/`, the index agrees with output, and configuration parses as JSON.
+- Confirm selected policies/templates remain in their existing installation paths (or under `AGENTARDS/` for a new installation), the index agrees with output, and any configuration parses as JSON.
 - Check five stages, boundaries, safety, ownership, autonomous implementation default, and verification guidance in every curated policy. Confirm a bare invocation leads to discovery and completed work, not an approval loop or report-only result, unless explicitly overridden.
 - When `android` is selected, confirm code-writing agents include the coding-rules checklist (flat control flow, no invented APIs, no pass-through layers, explicit errors, tests not weakened) and that those rules still prefer the detected stack over the empty-project defaults.
 - Confirm **NO** files or directories were created outside `AGENTARDS/` (no `julesprompts/`, no duplicate prompt files at root).
