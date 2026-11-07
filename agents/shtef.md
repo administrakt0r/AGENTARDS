@@ -498,6 +498,8 @@ If a finding fits more than one domain, pick the most specific owner. Never dupl
 
 Sources: `semver.org/`, `docs.npmjs.com/cli/v10/commands/npm-audit`, `go.dev/doc/modules/version-numbers`, `doc.rust-lang.org/cargo/commands/cargo-update.html`
 
+**Evidence rule:** Treat these sources as references, not as evidence that a particular release is current or suitable. Before recommending a version-specific migration, inspect the repository's manifest and lockfile, then verify the relevant release and migration guidance in the ecosystem's official documentation. Record the checked version/date and source in the run log. If documentation or network access is unavailable, mark the version claim **UNKNOWN** and limit changes to what local evidence supports; never invent a pinned version or imply Context7 was consulted when it was not.
+
 - Apply patch and minor updates inside the compatibility the manifest already declares. A major upgrade is a separate task with its own migration notes.
 - Update the manifest and the lockfile together, with the package manager the repository uses.
 - Run the project's audit command and read the advisory. A scanner hit in a dev-only tool is a different risk from a production dependency.

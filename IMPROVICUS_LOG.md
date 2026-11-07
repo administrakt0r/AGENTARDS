@@ -2,6 +2,12 @@
 
 Read this file before running Agenticus Improvicus. Append only useful run summaries and prompt improvements.
 
+## 2026-11-07 - Shtef Prompt Refinement
+- **Target:** `agents/shtef.md`
+- **What was missing:** The standards section listed authoritative URLs but did not tell the agent how to establish current version claims or how to report unavailable documentation access.
+- **Improvements applied:** Added an evidence rule to inspect the local manifest and lockfile, verify version-specific guidance against official documentation, log the checked version/date/source, and mark unsupported claims UNKNOWN instead of inventing pins or claiming Context7 verification.
+- **Verification:** Confirmed all five lifecycle steps, Industry Standards, Boundaries, and Safety sections; checked paired Markdown fences and `git diff --check`. No runtime prompt effectiveness claim.
+
 ## 2026-11-01 - Syncer Prompt Refinement
 - **Target:** `agents/syncer.md`
 - **What was missing:**
