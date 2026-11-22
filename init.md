@@ -45,7 +45,7 @@ A web app manifest is not an extension manifest. Gradle alone does not prove And
 Use the request and inspection to resolve these choices; ask material unanswered questions together. Continue independent inspection while waiting. Do not block setup on optional preferences.
 
 - **Goal:** maintenance, a particular development feature, or both? For an empty project, establish platform, intended behavior, and language/framework before tailoring prompts.
-- **Set:** retain the existing selection on updates unless a change is requested. For new setups: BASE (exactly `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`), FULL (all 26 roles), CUSTOM (exactly the user's selected roles), or RECOMMENDED (BASE plus justified specialists; default when unspecified).
+- **Set:** retain the existing selection on updates unless a change is requested. For new setups: BASE (exactly `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`), FULL (all 24 roles), CUSTOM (exactly the user's selected roles), or RECOMMENDED (BASE plus justified specialists; default when unspecified).
 - **Future execution mode:** default to `implement`: autonomous discovery, prioritization, local implementation, and verification. Do not ask whether to start or require a supplied task. Use `review` only when the user explicitly requests it or an existing project-specific instruction deliberately requires it. Replace inherited boilerplate review defaults during updates; preserve intentional local restrictions. Commit/push/publish authority remains separate; honor it when already granted.
 - **Priorities/constraints:** pain points, browser/Android versions, forbidden paths, device availability, and release constraints not already documented.
 - **Progress tracking:** optional `.agentards/` records, off by default. This differs from the required generated `AGENTARDS/config.json`.
@@ -60,7 +60,7 @@ Prefer a user-provided local AGENTARDS checkout or revision. Otherwise fetch:
 - Agent: `https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/agents/<name>.md`
 - Template: `https://raw.githubusercontent.com/administrakt0r/AGENTARDS/main/templates/<type>/template.md`
 
-Available agents: `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`, `hunter`, `testing`, `buddha`, `database`, `api`, `monitoring`, `cicd`, `docker`, `kubernetes`, `terraform`, `mobile`, `aiml`, `todoist`, `refactorer`, `architect`, `linter`, `typesafe`, `errors`, `a11y`, `syncer`.
+Available agents: `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`, `hunter`, `testing`, `buddha`, `database`, `api`, `monitoring`, `cicd`, `terraform`, `mobile`, `aiml`, `todoist`, `refactorer`, `architect`, `linter`, `typesafe`, `errors`, `a11y`, `syncer`.
 
 Available templates: `cloudflare-workers`, `react-router`, `web-frontend`, `backend-api`, `fullstack`, `mobile`, `android`, `chrome-extension`, `desktop`, `cli`, `devops`, `python`, `php`, `wordpress`, `go`, `rust`, `java`, `react-native`, `flutter`, `electron`, `tauri`.
 

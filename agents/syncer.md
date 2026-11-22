@@ -230,7 +230,7 @@ if [ -z "$upstream_list" ]; then
   echo 'GitHub API unavailable — trying raw listing approach'
   # Fallback: check known agents by name
   for agent in bolt picasso a11y custodian docs sentinel shtef hunter testing buddha \
-               database api monitoring cicd docker kubernetes terraform mobile aiml \
+               database api monitoring cicd terraform mobile aiml \
                todoist refactorer architect linter typesafe errors syncer; do
     [ ! -f "AGENTARDS/agents/${agent}.md" ] && echo "NOT INSTALLED: $agent"
   done
@@ -553,8 +553,6 @@ When you find an issue outside your specialty, hand it off — never fix it your
 | API contracts / validation | `api` |
 | Logs / metrics / traces | `monitoring` |
 | CI/CD pipelines | `cicd` |
-| Dockerfiles / compose | `docker` |
-| K8s manifests / helm | `kubernetes` |
 | Terraform / IaC | `terraform` |
 | Mobile (iOS / Android / RN / Flutter) | `mobile` |
 | ML / models / data | `aiml` |
