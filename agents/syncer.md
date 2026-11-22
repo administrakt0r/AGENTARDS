@@ -278,6 +278,7 @@ For each installed agent that has a valid upstream Markdown file:
 2. Skip a section whose trimmed lines already match.
 3. If every local line already appears in the upstream section, write the upstream section.
 4. Otherwise keep every local line in order and append upstream lines that are not already there.
+   Before steps 3 and 4 write or append anything, skip upstream examples, checklists, and language blocks for stacks that `config.json` capabilities mark as not detected, so tailoring removals are not re-added on every run.
 5. If the same subject has two different requirements, keep the local line and record a conflict.
 6. Never delete a local line from `## Your Job`, `## Boundaries`, `## Safety`, a heading upstream does not have, or notes under Safety. You may append an upstream line that is absent.
 7. Add missing Cross-Domain Handoff rows. Do not replace the table.

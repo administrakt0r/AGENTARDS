@@ -239,7 +239,7 @@ your-project/
 
 We welcome improvements to agent policies, stack templates, and detection rules.
 - Maintain the **5-step contract** (`DETECT` → `FIND` → `FIX` → `VERIFY` → `REPORT`).
-- Use **Context7-verified standards** and official documentation citations.
+- Cite official documentation for version-specific advice (checked with Context7 or the web when available); mark unverified claims UNKNOWN rather than inventing versions.
 - Keep diagnostic commands concrete (`rg` with file filters).
 - Provide real before/after code examples.
 - Read [`AGENTS.md`](AGENTS.md) before submitting a PR.

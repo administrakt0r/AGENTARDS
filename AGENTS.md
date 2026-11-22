@@ -43,7 +43,7 @@ Use `templates/chrome-extension/template.md` for manifest/build detection, worke
 
 ## Validation and handoff
 
-Inspect the final diff and run `git diff --check`. Check local links and catalog paths, matching code fences, and required policy sections. When adding a template, update the list in `init.md`, README table/count/tree, and selection guidance together.
+Inspect the final diff and run `git diff --check`. Check local links and catalog paths, matching code fences, and required policy sections. When adding a template, update the list in `init.md`, README table/count/tree, and selection guidance together. Confirm every name in `init.md`'s `Available agents` and `Available templates` lists has a matching file, and that no prompt file was deleted unless the catalog, counts, and selection guidance were updated in the same change.
 
 Review initialization against an existing project with custom prompts, an empty project, unavailable source files, explicit BASE/FULL/CUSTOM selections, and missing browser/Android tooling. Instructions must have clear outcomes without invented evidence or overwritten content.
 

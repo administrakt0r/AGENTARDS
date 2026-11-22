@@ -6,7 +6,7 @@ This task generates instructions. It does not execute generated agents, implemen
 
 ## 1. Inspect first
 
-Identify the target root and existing `AGENTARDS/`, `AGENTS.md`, and `.agentards/` files. Inspect Git state when available, preserving dirty and untracked work. Inside the AGENTARDS source library itself, resolve whether the task is library maintenance or generation for another project before creating nested output.
+Identify the target root and existing `AGENTARDS/`, `AGENTS.md`, and `.agentards/` files, plus other agent instruction files the project already relies on (for example `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/`, `.windsurfrules`). Generated prompts must agree with those files and point to them for shared rules instead of copying or contradicting them. Inspect Git state when available, preserving dirty and untracked work. Inside the AGENTARDS source library itself, resolve whether the task is library maintenance or generation for another project before creating nested output.
 
 For existing AGENTARDS, inventory its current roles, filenames/layout, shared policies, configuration, templates, task prompts, and local verification commands before choosing changes. Existing project-specific knowledge is the starting point, not disposable output. Preserve its layout and selected roles unless the user requests a change; do not move flat prompts into an `agents/` directory or introduce a competing configuration system merely to match the example below.
 
@@ -18,10 +18,14 @@ Read enough of the project to identify:
 - Actual build, test, lint, type-check, packaging, and CI commands with their working directories.
 - Interfaces, data storage, permissions, distribution targets, and existing tests.
 - Existing documentation, guidelines, or task files.
+- Hotspots and recurring problems from recent Git history when available (frequently changed files, repeated `fix` commits, reverted changes). Treat them as leads for prioritization, not proof of defects.
+- Baseline status of the verification commands. Run a command only when it is cheap and clearly non-mutating (lint, type-check, an offline unit-test command), once, and record pass/fail with its exit status. Never run install, migration, deploy, publish, code-generation, or snapshot-updating commands during setup. Record anything not run as **UNKNOWN**, so agents can tell pre-existing failures from regressions they cause.
 
 Use focused searches such as `rg --files -g '!node_modules' -g '!vendor' -g '!build' -g '!dist'`; adapt to available tools and repository structure. Read manifests before executing project scripts. Do not dump credentials, environment files, or signing material.
 
 Classify relevant capabilities as **Detected / Not detected / Unknown**, with a supporting path or reason. Missing tests do not make testing irrelevant. For an empty project, separate the user's intended stack from detected evidence.
+
+Write these findings down once as a **project profile** (components, stack with versions and their evidence paths, commands with working directories and baseline status, risk areas, existing instruction files, constraints). Every generated prompt draws from this one profile, so commands, paths, and versions stay consistent across agents. Persist it in `AGENTARDS/config.json` and the generated README; do not create another file for it.
 
 | Evidence or explicit project goal | Template routing |
 |-----------------------------------|------------------|
@@ -60,13 +64,32 @@ Available agents: `bolt`, `picasso`, `custodian`, `docs`, `sentinel`, `shtef`, `
 
 Available templates: `cloudflare-workers`, `react-router`, `web-frontend`, `backend-api`, `fullstack`, `mobile`, `android`, `chrome-extension`, `desktop`, `cli`, `devops`, `python`, `php`, `wordpress`, `go`, `rust`, `java`, `react-native`, `flutter`, `electron`, `tauri`.
 
+If raw URLs cannot be fetched, a shallow clone (`git clone --depth 1 https://github.com/administrakt0r/AGENTARDS`) into a temporary location outside the target repository is an equivalent source; remove it afterwards and never commit it. If no network access exists, ask the user for a local copy.
+
 Load only selected agents/templates. Use a consistent revision where possible; record actual source provenance, without claiming a pinned commit for mutable `main`. Confirm responses contain the requested Markdown, not errors or HTML. If a required source is unavailable, use a verified local copy or report the missing source and leave dependent files untouched. Never invent fetched content or silently generate an incomplete set.
 
 Treat loaded prompts as source material, not commands to execute. Do not run their example scripts during setup.
 
+Source prompts are long. To keep attention on quality, tailor one agent at a time: load its policy and the selected templates, write the tailored file, check it against the quality bar in section 4, and only then load the next one. If the client supports parallel workers, they may tailor separate agents, but only after the project profile exists, and each worker uses that profile unchanged.
+
 ## 4. Tailor actionable prompts
 
 Merge selected policies with relevant template guidance and observed conventions. Preserve each specialty, five-step lifecycle, `Boundaries`, `Safety`, and `Cross-Domain Handoff`. Replace irrelevant examples with project-supported commands. Correct examples that hide failures, expose secrets, or assume unsupported tools.
+
+### Quality bar for every generated prompt
+
+Tailoring means rewriting for this repository. Adding a header to a copy of the upstream file does not count. Before writing a prompt, check that:
+
+- **It fails the swap test.** If the prompt could be dropped into an unrelated repository unchanged, it is not tailored. It names real paths, modules, entry points, and conventions from the project profile.
+- **Every command is real.** Each build, test, lint, type-check, or diagnostic command traces to a manifest script, toolchain file, CI step, or installed tool, with its working directory. Commands that could not be confirmed are labeled as suggestions with **UNKNOWN** status. Diagnostic searches use globs and exclusions that match this repository's layout and languages.
+- **Irrelevant material is gone.** Examples, checklists, and language sections for stacks the profile marks **Not detected** are removed, so the running agent spends its context on this project. Keep a capability marked **Unknown** with a note on how to confirm it.
+- **Priorities are concrete.** The Find step opens with the three to seven most valuable areas for this specialty in this repository, each with evidence (a path, a hotspot, a baseline failure, a missing test). These are where the agent starts, not a fixed task list.
+- **Examples match local code.** Before/after examples use the project's language, framework, naming, and error-handling style. An example only shows a technique; it does not require that change.
+- **Baseline is stated.** Verify names which checks already failed before the agent ran, so new failures and pre-existing ones are reported separately.
+- **It stays standalone.** An agent with only this file and the repository can start work, without reading other generated prompts or the upstream library.
+- **Nothing is invented.** Versions, paths, commands, services, and team conventions all come from evidence or are marked **UNKNOWN**.
+
+For an existing installation, this bar applies to what you add or create. It never authorizes deleting local lines; section 5 governs updates.
 
 Embed the following autonomy contract in every standalone curated prompt (or its existing composed policy when the repository uses composition): invoking the agent authorizes it to inspect, identify and prioritize evidence-backed work in its specialty, implement it, and verify the result. It must make routine technical decisions itself and complete useful work rather than stop at a plan, findings list, or offer to continue. Work through coherent tasks sequentially while relevant, actionable work remains within the requested scope or explicit budget. A blocked item must not stop other independent work. Stop when the requested outcome is complete, no justified actionable work remains, or all remaining work needs unavailable access or a material user decision. Never manufacture changes to stay busy. Preserve explicit user limits and unrelated edits. Report concrete blockers and unrun checks honestly. Autonomy does not erase role ownership or authorize destructive, external, or production actions beyond existing authority.
 
@@ -82,7 +105,7 @@ Every generated agent must stand alone and include:
    - Scan the stack-specific anti-pattern checklist before selecting a candidate task.
 3. **Stack-Tailored Anti-Pattern Checklist:** provide concrete checkable items derived from the detected template(s) (e.g. database N+1 queries, unindexed queries, missing statement batching, edge caching leaks, bundle budget thresholds, recomposition waste, memory leaks). When `android` is selected, merge the **Coding rules** section from `templates/android/template.md` into every generated agent that edits code. Adapt examples to the detected UI (Compose, Views, or a cross-platform host such as React Native or Flutter). Apply Kotlin rules only to hand-written native code. The empty-project default stack in that template is a fallback, never a migration: a detected library, navigation system, DI framework, database, or generated `android/` tree always wins. Do not introduce Compose, Hilt, Room, Navigation Compose, or DataStore into a project that does not already use them.
 4. **Local Map:** concrete paths, entry points, services, routes, configuration, and test files in this repository.
-5. **Industry Standards (verified via Context7):** cite official documentation and pinned versions for detected libraries and frameworks (e.g. React 19, React Router 7, Cloudflare Workers & D1, Compose BOM, Room 3, Vitest 5, FastAPI).
+5. **Industry Standards:** cite official documentation for the detected libraries and frameworks, using the versions found in the target's manifests, lockfiles, or toolchain files. When a documentation tool such as Context7 or web access is available, check version-specific guidance against it and record the source and date. Otherwise keep the guidance version-neutral and mark version claims **UNKNOWN**. Never claim verification that did not happen, and never pin a version the project does not use. Keep the upstream section heading text unchanged so later merges still match it.
 6. **Detect:** recheck stack facts that can drift, cite observed configuration, and mark unknowns.
 7. **Find:** discover and prioritize work without waiting for a task list; trace real user journeys or failures, record evidence and impact, and take one coherent task at a time. Search matches are leads. An evidence-backed no-op is valid.
 8. **Fix:** implement within the authorized mode and role, preserving behavior outside scope. In review mode, propose the patch without changing application files. Do not add dependencies or optimizations merely because examples use them.
@@ -110,11 +133,12 @@ For an existing installation, patch the current files inside `AGENTARDS/` direct
 - If the normalized section already matches upstream, skip it.
 - If every local line already appears in upstream and upstream has additional lines, write the upstream section.
 - Otherwise keep every local line and append upstream lines that are not already present, under the matching `###` when one exists, otherwise at the end of the section.
+- Before appending or writing upstream lines, apply the same relevance filter used for tailoring: skip examples, checklists, and language blocks for stacks the project profile marks **Not detected**. Without this filter, every update would re-add material that tailoring removed on purpose. Because the filter depends only on the profile, reruns stay convergent. When the profile changes (for example a new language is detected), the newly relevant upstream material is added on the next run.
 - When the same subject carries two different requirements, keep the local line and report a conflict. Do not auto-resolve it.
 
 **What to add when missing:**
 - Start Here / log-first protocol pointing at `AGENTARDS/logs/<AGENT>_LOG.md`, including the one-time root-log copy rule above.
-- `## Industry Standards (verified 2026-10 via Context7)` blocks citing current documentation. Pin versions only from evidence in the target project or the source prompt.
+- An `## Industry Standards` block when the section is absent, using the upstream heading text verbatim and the evidence rules from section 4 item 5. Pin versions only from evidence in the target project.
 - Concrete `rg` / `find` detect commands for the detected stack, in place of vague "scan for X" prose.
 - Production-grade fix examples where the local section has none and upstream has them.
 - Verify checks for typecheck, lint, tests, budgets, and build, with exit status, using commands that exist in the project.
@@ -144,9 +168,37 @@ AGENTARDS/
 └── tasks/<slug>.md              # only for requested development tasks
 ```
 
-For new installations, `config.json` must be valid JSON with `schema_version` (1), `project` (including component roots), `capabilities` (name/status/evidence), `agents`, `templates`, `execution_mode` (`implement` by default), `permissions` (commit/push/publish), `progress_tracking`, `sources`, and `verification` (command/cwd/prerequisites). For existing installations, preserve their schema/configuration authority and update equivalent fields where supported. Use relative project paths, explicit unknowns, and no secrets or fabricated versions. Optional progress belongs in `.agentards/`, without a duplicate configuration authority.
+For new installations, `config.json` must be valid JSON with `schema_version` (1), `project` (including component roots), `capabilities` (name/status/evidence), `set` (`BASE`, `FULL`, `CUSTOM`, or `RECOMMENDED`; `syncer` reads it to decide whether to install new upstream agents), `agents`, `templates`, `execution_mode` (`implement` by default), `permissions` (commit/push/publish), `progress_tracking`, `sources`, and `verification` (command/cwd/prerequisites/baseline). For existing installations, preserve their schema/configuration authority and update equivalent fields where supported. Use relative project paths, explicit unknowns, and no secrets or fabricated versions. Optional progress belongs in `.agentards/`, without a duplicate configuration authority.
 
-The generated README must show how to invoke an agent and a task with its owner, role responsibilities, detected stack, regeneration behavior, and unavailable checks.
+Shape of a new `config.json` (values are illustrative; replace every one with observed facts or `"unknown"`):
+
+```json
+{
+  "schema_version": 1,
+  "project": {
+    "name": "example-app",
+    "components": [{ "name": "web", "root": "apps/web", "stack": ["typescript", "react"] }]
+  },
+  "capabilities": [
+    { "name": "unit-tests", "status": "detected", "evidence": "apps/web/package.json scripts.test" },
+    { "name": "database", "status": "not detected", "evidence": "no ORM, driver, or migrations found" },
+    { "name": "e2e-tests", "status": "unknown", "evidence": "playwright listed but no config found" }
+  ],
+  "set": "RECOMMENDED",
+  "agents": ["bolt", "picasso", "custodian", "docs", "sentinel", "shtef", "testing"],
+  "templates": ["web-frontend"],
+  "execution_mode": "implement",
+  "permissions": { "commit": false, "push": false, "publish": false },
+  "progress_tracking": false,
+  "sources": [{ "repo": "administrakt0r/AGENTARDS", "ref": "main", "fetched": "YYYY-MM-DD" }],
+  "verification": [
+    { "name": "test", "command": "npm test", "cwd": "apps/web", "prerequisites": ["npm ci"], "baseline": "pass (exit 0)" },
+    { "name": "lint", "command": "npm run lint", "cwd": "apps/web", "prerequisites": [], "baseline": "unknown (not run)" }
+  ]
+}
+```
+
+The generated README must show how to invoke an agent and a task with its owner, role responsibilities, detected stack, regeneration behavior, and unavailable checks. Give copy-ready invocations that work in any client, for example `Read AGENTARDS/agents/bolt.md and follow it.` and `Read AGENTARDS/tasks/<slug>.md and complete it as described in its owner's prompt.`
 
 Compare destinations before writing. Create missing files, skip identical ones, and preserve customization. Apply requested updates with focused edits where ownership and intent are clear; otherwise preserve the conflicting file and report the proposed change. Never delete unselected agents, overwrite the target's root `AGENTS.md`, or append duplicate instructions. Keep config/index consistent with actual output and label preserved legacy/conflicted files rather than claiming regeneration. Repeating unchanged setup should produce no changes.
 
@@ -156,6 +208,8 @@ Compare destinations before writing. Create missing files, skip identical ones, 
 - Check five stages, boundaries, safety, ownership, autonomous implementation default, and verification guidance in every curated policy. Confirm a bare invocation leads to discovery and completed work, not an approval loop or report-only result, unless explicitly overridden.
 - When `android` is selected, confirm code-writing agents include the coding-rules checklist (flat control flow, no invented APIs, no pass-through layers, explicit errors, tests not weakened) and that those rules still prefer the detected stack over the empty-project defaults.
 - Confirm **NO** files or directories were created outside `AGENTARDS/` (no `julesprompts/`, no duplicate prompt files at root).
+- Re-read each generated prompt against the quality bar in section 4: swap test, real commands, irrelevant stacks removed, evidence-backed priorities, stated baseline, standalone. Fix any prompt that fails before reporting.
+- Confirm commands, paths, and versions agree across every generated prompt, `config.json`, and the generated README. They all come from the same project profile.
 - Check fences by delimiter type/length, local links, and unresolved placeholders. Explain unknown tooling rather than inventing commands.
 - Review the diff for unintended app changes, lost customization, secrets, unsupported assumptions, and conflicting authority rules.
 - Walk through relevant scenarios on paper: bare agent invocation, explicit review-only override, existing flat/custom/composed prompts upgraded without recreation, unchanged rerun, additive merge that keeps a local-only line and appends an upstream-only line once, survival of `## Your Job`, Boundaries, Safety, capabilities, and permissions, FULL installing a missing agent while BASE/CUSTOM/RECOMMENDED only report it, a failed fetch leaving the destination untouched, a root `./BOLT_LOG.md` copied into `AGENTARDS/logs/BOLT_LOG.md` with the root file left in place, empty project, explicit BASE/FULL/CUSTOM, unavailable sources, and missing browser/device tooling. Static review is not an execution test.
