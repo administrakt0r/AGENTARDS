@@ -727,8 +727,6 @@ When you find an issue outside your specialty, hand it off — never fix it your
 | API contracts / validation | `api` |
 | Logs / metrics / traces | `monitoring` |
 | CI/CD pipelines | `cicd` |
-| Dockerfiles / compose | `docker` |
-| K8s manifests / helm | `kubernetes` |
 | Terraform / IaC | `terraform` |
 | Mobile (iOS / Android / RN / Flutter) | `mobile` |
 | ML / models / data | `aiml` |

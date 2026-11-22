@@ -47,7 +47,7 @@ done
 
 Evaluate the scan results and select the prompt that most urgently needs one of these upgrades:
 
-1. **Missing `Industry Standards (verified via Context7)`**: The prompt lacks official framework citations, modern API patterns, and pinned version recommendations.
+1. **Missing or unsupported `Industry Standards`**: The prompt lacks official framework citations and modern API patterns, or it states versions and verification that no recorded source supports.
 2. **Missing Dedicated Run Logging (`*_LOG.md`)**: The prompt lacks the log-first workflow and Start Here instructions.
 3. **Weak or Vague Detection Commands**: The prompt says "scan for X" instead of providing concrete, executable `rg` and `find` commands with appropriate flags and exclusions.
 4. **Thin or Missing Fix Examples**: The prompt lacks realistic, multi-step before/after code examples across relevant languages (TypeScript, Python, Go, Rust, etc.).
@@ -64,10 +64,11 @@ Surgically update the selected file, ensuring it contains:
 ### 1. Log-First Autonomous Start Here Section
 Ensure the prompt instructs the agent to read `AGENTARDS/logs/<NAME>_LOG.md` before doing anything, inspect code directly, check stack anti-patterns, and append results upon completion. If that file is missing and `./<NAME>_LOG.md` exists at the repository root, copy it once into `AGENTARDS/logs/` and leave the root file in place.
 
-### 2. Industry Standards (verified via Context7)
-Add or update the Context7 industry standards block directly above `## Boundaries` or `## Safety`:
+### 2. Industry Standards
+Add or update the industry standards block directly above `## Boundaries` or `## Safety`, keeping the existing heading text so installed copies still merge:
 - Cite authoritative documentation URLs (e.g. `react.dev`, `developer.android.com`, `developers.cloudflare.com`, `owasp.org`, `vitest.dev`, `fastapi.tiangolo.com`).
-- Include verified, modern best practices and pinned versions for common ecosystems.
+- Check version-specific guidance against official documentation (Context7 or web access when available) and record the source and date in `IMPROVICUS_LOG.md`. If you cannot check a claim, keep it version-neutral or mark it UNKNOWN. Never invent a version or claim a Context7 check that did not happen.
+- Tell the running agent to take versions from the target project's manifests and lockfiles, not from this prompt.
 
 ### 3. Concrete Diagnostic Commands (`rg` / `find`)
 Replace any abstract prose in Step 2 with robust ripgrep commands:
@@ -102,9 +103,19 @@ done
 # 3. Verify Context7 standards section exists
 grep -q "Industry Standards" "agents/<name>.md" || echo "MISSING: Industry Standards"
 
-# 4. Verify Boundaries and Safety exist
+# 4. Verify Boundaries, Safety, and Cross-Domain Handoff exist
 grep -q "## Boundaries" "agents/<name>.md" || echo "MISSING: Boundaries"
 grep -q "## Safety" "agents/<name>.md" || echo "MISSING: Safety"
+grep -q "## Cross-Domain Handoff" "agents/<name>.md" || echo "MISSING: Cross-Domain Handoff"
+
+# 5. Catalog consistency: every agent named in init.md exists, and nothing was deleted
+for a in $(sed -n 's/^Available agents: //p' init.md | tr -d '`.' | tr ',' ' '); do
+  [ -f "agents/$a.md" ] || echo "MISSING AGENT FILE: agents/$a.md"
+done
+git status --porcelain -- agents templates | grep '^ *D' && echo "ERROR: prompt files deleted in this run"
+
+# 6. Whitespace errors
+git diff --check || echo "ERROR: git diff --check failed"
 ```
 
 ---

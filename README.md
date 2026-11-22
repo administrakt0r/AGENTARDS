@@ -6,7 +6,7 @@
 
 **Zero config. Zero dependencies. Copy, paste, and walk away.**
 
-[![Agents](https://img.shields.io/badge/agents-26-blueviolet?style=for-the-badge)](#-the-26-autonomous-agents)
+[![Agents](https://img.shields.io/badge/agents-24-blueviolet?style=for-the-badge)](#-the-24-autonomous-agents)
 [![Templates](https://img.shields.io/badge/templates-21-blue?style=for-the-badge)](#-project-type-templates-21-stacks)
 [![Lifecycle](https://img.shields.io/badge/lifecycle-5--step-orange?style=for-the-badge)](#-the-autonomous-agent-contract)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](#-license)
@@ -28,7 +28,7 @@
 > 
 > *Automatically detects your stack, tailors anti-pattern checklists and Context7 industry standards to your project, and installs clean autonomous agents inside `AGENTARDS/`. Zero configuration required.*
 > 
-> **[Read Quick Start Guide ↓](#-quick-start)** &nbsp;|&nbsp; **[Browse 26 Agents ↓](#-the-26-autonomous-agents)** &nbsp;|&nbsp; **[View Supported Stacks ↓](#-project-type-templates-21-stacks)**
+> **[Read Quick Start Guide ↓](#-quick-start)** &nbsp;|&nbsp; **[Browse 24 Agents ↓](#-the-24-autonomous-agents)** &nbsp;|&nbsp; **[View Supported Stacks ↓](#-project-type-templates-21-stacks)**
 
 ---
 
@@ -41,7 +41,7 @@
 - [🚀 Quick Start Guide](#-quick-start)
   - [Option A: Initialize or Upgrade Repository](#option-a-initialize-or-upgrade-any-repository-recommended)
   - [Option B: Run a Single Specialist Directly](#option-b-run-a-single-specialist-directly)
-- [🤖 The 26 Autonomous Agents](#-the-26-autonomous-agents)
+- [🤖 The 24 Autonomous Agents](#-the-24-autonomous-agents)
   - [Core Quality (BASE Set)](#-core-quality-base-set)
   - [Deep Specialists (FULL Set)](#-deep-specialists-full-set)
   - [Engineering Standards Specialists](#-engineering-standards-specialists)
@@ -112,7 +112,7 @@ Need immediate help with a specific problem? Browse [`agents/`](agents/), copy t
 
 ---
 
-## 🤖 The 26 Autonomous Agents
+## 🤖 The 24 Autonomous Agents
 
 ### 🧩 Core Quality (BASE Set)
 The essential foundation for any codebase:
@@ -137,8 +137,6 @@ The essential foundation for any codebase:
 | `api` | 🔌 | Interfaces & Contracts | Endpoint validation, error envelopes, OpenAPI drift, CORS headers |
 | `monitoring` | 📊 | Observability | Structured logging, Prometheus metrics, OpenTelemetry tracing, spans |
 | `cicd` | 🚀 | Delivery Automation | GitHub Actions, GitLab CI workflows, caching, test matrix optimization |
-| `docker` | 🐳 | Container Workflows | Multi-stage Dockerfiles, image size reduction, non-root user hardening |
-| `kubernetes` | ☸️ | Cluster Orchestration | Resource limits, probes, PodDisruptionBudgets, security contexts |
 | `terraform` | 🏗️ | Infrastructure as Code | State locking, module drift, least-privilege IAM policies, plan safety |
 | `mobile` | 📱 | Mobile Systems | Android/iOS lifecycle, background work, memory pressure, offline sync |
 | `aiml` | 🧠 | Machine Learning | Model inference lifecycle, token streaming backpressure, embeddings |
@@ -239,7 +237,7 @@ your-project/
 
 We welcome improvements to agent policies, stack templates, and detection rules.
 - Maintain the **5-step contract** (`DETECT` → `FIND` → `FIX` → `VERIFY` → `REPORT`).
-- Use **Context7-verified standards** and official documentation citations.
+- Cite official documentation for version-specific advice (checked with Context7 or the web when available); mark unverified claims UNKNOWN rather than inventing versions.
 - Keep diagnostic commands concrete (`rg` with file filters).
 - Provide real before/after code examples.
 - Read [`AGENTS.md`](AGENTS.md) before submitting a PR.

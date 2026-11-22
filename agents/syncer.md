@@ -230,7 +230,7 @@ if [ -z "$upstream_list" ]; then
   echo 'GitHub API unavailable — trying raw listing approach'
   # Fallback: check known agents by name
   for agent in bolt picasso a11y custodian docs sentinel shtef hunter testing buddha \
-               database api monitoring cicd docker kubernetes terraform mobile aiml \
+               database api monitoring cicd terraform mobile aiml \
                todoist refactorer architect linter typesafe errors syncer; do
     [ ! -f "AGENTARDS/agents/${agent}.md" ] && echo "NOT INSTALLED: $agent"
   done
@@ -278,6 +278,7 @@ For each installed agent that has a valid upstream Markdown file:
 2. Skip a section whose trimmed lines already match.
 3. If every local line already appears in the upstream section, write the upstream section.
 4. Otherwise keep every local line in order and append upstream lines that are not already there.
+   Before steps 3 and 4 write or append anything, skip upstream examples, checklists, and language blocks for stacks that `config.json` capabilities mark as not detected, so tailoring removals are not re-added on every run.
 5. If the same subject has two different requirements, keep the local line and record a conflict.
 6. Never delete a local line from `## Your Job`, `## Boundaries`, `## Safety`, a heading upstream does not have, or notes under Safety. You may append an upstream line that is absent.
 7. Add missing Cross-Domain Handoff rows. Do not replace the table.
@@ -552,8 +553,6 @@ When you find an issue outside your specialty, hand it off — never fix it your
 | API contracts / validation | `api` |
 | Logs / metrics / traces | `monitoring` |
 | CI/CD pipelines | `cicd` |
-| Dockerfiles / compose | `docker` |
-| K8s manifests / helm | `kubernetes` |
 | Terraform / IaC | `terraform` |
 | Mobile (iOS / Android / RN / Flutter) | `mobile` |
 | ML / models / data | `aiml` |
